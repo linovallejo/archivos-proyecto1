@@ -1,6 +1,7 @@
-package utils
+package Utils
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 )
@@ -18,4 +19,12 @@ func PrintCopyright() {
 	fmt.Println("Lino Antonio Garcia Vallejo")
 	fmt.Println("Carné: 9017323")
 	LineaDoble(60)
+}
+
+func CleanPartitionName(name []byte) string {
+	n := bytes.IndexByte(name, 0)
+	if n == -1 {
+		n = len(name)
+	}
+	return string(name[:n])
 }
