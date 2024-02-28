@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"path/filepath"
 	Types "proyecto1/types"
 	"strconv"
 	"strings"
@@ -87,4 +88,18 @@ func CreateDiskWithSize(filename string, size int64) {
 	}
 
 	fmt.Println("Disco creado correctamente con tamaño:", size, "bytes.")
+}
+
+func ConstructFileName(path string) string {
+	var filename string
+	const baseName = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+	for _, letter := range baseName {
+		filename = fmt.Sprintf("%s%s", filename, string(letter))
+		fullPath := filepath.Join(path, filename)
+		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+			break
+		}
+	}
+	return filename
 }

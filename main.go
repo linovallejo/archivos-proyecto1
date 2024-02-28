@@ -13,7 +13,6 @@ import (
 )
 
 var rutaDiscos string = "./disks/MIA/P1/"
-var archivoBinarioDisco string = "primario.dsk"
 
 func main() {
 	Utils.LimpiarConsola()
@@ -49,7 +48,7 @@ func main() {
 	for _, command := range commands {
 		if strings.HasPrefix(command, "mkdisk") {
 			params := strings.Fields(command)
-			mkdisk(archivoBinarioDisco, params[1:])
+			mkdisk(params[1:])
 		} else if strings.HasPrefix(command, "fdisk") {
 			params := strings.Fields(command)
 			fdisk(params[1:])
@@ -79,7 +78,7 @@ func parseCommand(input string) (string, string) {
 	return command, path
 }
 
-func mkdisk(filename string, params []string) {
+func mkdisk(params []string) {
 	size, unit, err := Mkdisk.ExtractMKDISKParams(params)
 	if err != nil {
 		fmt.Println("Error al procesar los parámetros MKDISK:", err)
@@ -92,6 +91,9 @@ func mkdisk(filename string, params []string) {
 		fmt.Println("Error:", err)
 		return
 	}
+
+	// Construye el nombre del disco apropiado
+	var filename string = Mkdisk.ConstructFileName(rutaDiscos)
 
 	// Creación del disco con el tamaño calculado en bytes
 	Mkdisk.CreateDiskWithSize(filename, sizeInBytes)
@@ -154,7 +156,7 @@ func extractFdiskParams(params []string) (int64, string, string, string, string,
 }
 
 func fdisk(params []string) {
-	size, _, _, _, _, fit, parttype, err := extractFdiskParams(params)
+	size, driveletter, _, _, _, fit, parttype, err := extractFdiskParams(params)
 	// size, driveletter, unit, letter, name, fit, parttype, err := extractFdiskParams(params)
 
 	if err != nil {
@@ -163,6 +165,13 @@ func fdisk(params []string) {
 	}
 
 	// Leer el MBR existente
+	filename := driveletter + ".dsk"
+	archivoBinarioDisco, err := Fdisk.ConstructAndValidateFileName(rutaDiscos, filename)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	mbr, err := Fdisk.ReadMBR(archivoBinarioDisco)
 	if err != nil {
 		fmt.Println("Error leyendo el MBR:", err)

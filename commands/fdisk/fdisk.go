@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	Types "proyecto1/types"
 )
 
@@ -206,4 +207,14 @@ func ValidatePartitionCreation(mbr *Types.MBR, partType string) error {
 	}
 
 	return nil
+}
+
+func ConstructAndValidateFileName(path string, filename string) (string, error) {
+	fullPath := filepath.Join(path, filename)
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		// El archivo no existe
+		return "", fmt.Errorf("el archivo %s no existe", fullPath)
+	}
+	// El archivo existe
+	return fullPath, nil
 }
