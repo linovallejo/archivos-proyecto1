@@ -3,6 +3,8 @@ package Utils
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -27,4 +29,12 @@ func CleanPartitionName(name []byte) string {
 		n = len(name)
 	}
 	return string(name[:n])
+}
+
+func EnsurePathExists(path string) error {
+	dir := filepath.Dir(path)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return os.MkdirAll(dir, os.ModePerm)
+	}
+	return nil
 }

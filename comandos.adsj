@@ -1,2 +1,0 @@
-mkdisk -size=20 -unit=M -fit=BF
-fdisk -size=300 -driveletter=A -name=Particion1 -unit=M -type=P -fit=BF

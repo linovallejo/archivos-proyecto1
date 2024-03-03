@@ -7,11 +7,71 @@ import (
 	"os"
 	"path/filepath"
 	Types "proyecto1/types"
+	Utils "proyecto1/utils"
+	"strconv"
+	"strings"
+	"unicode"
 )
 
 type Space struct {
 	Start int64 // Inicio del espacio libre
 	Size  int64 // Tamaño del espacio libre
+}
+
+func ExtractFdiskParams(params []string) (int64, string, string, string, string, string, string, error) {
+	var size int64
+	var driveletter, unit, letter, name, fit, parttype string
+
+	for _, param := range params {
+		switch {
+		case strings.HasPrefix(param, "-size="):
+			sizeStr := strings.TrimPrefix(param, "-size=")
+			var err error
+			size, err = strconv.ParseInt(sizeStr, 10, 64)
+			if err != nil || size <= 0 {
+				return 0, "", "", "", "", "", "", fmt.Errorf("Parametro tamaño invalido")
+			}
+		case strings.HasPrefix(param, "-driveletter="):
+			driveletter = strings.TrimPrefix(param, "-driveletter=")
+			// Validar la letra de la partición
+			if len(driveletter) != 1 || !unicode.IsLetter(rune(driveletter[0])) {
+				return 0, "", "", "", "", "", "", fmt.Errorf("La letra de la partición debe ser un único carácter alfabérico")
+			}
+		case strings.HasPrefix(param, "-name="):
+			name = strings.TrimPrefix(param, "-name=")
+			// Validar el nombre de la partición
+			if len(name) > 16 {
+				return 0, "", "", "", "", "", "", fmt.Errorf("El nombre de la partición no puede exceder los 16 caracteres")
+			}
+		case strings.HasPrefix(param, "-unit="):
+			unit = strings.TrimPrefix(param, "-unit=")
+			if unit != "B" && unit != "K" && unit != "M" {
+				return 0, "", "", "", "", "", "", fmt.Errorf("Parametro unidad invalido")
+			}
+		case strings.HasPrefix(param, "-type="):
+			parttype = strings.TrimPrefix(param, "-type=")
+			// Validar el tipo de la partición
+			if parttype != "P" && parttype != "E" && parttype != "L" {
+				return 0, "", "", "", "", "", "", fmt.Errorf("El tipo de la partición debe ser 'P', 'E' o 'L'")
+			}
+		case strings.HasPrefix(param, "-fit="):
+			fit = strings.TrimPrefix(param, "-fit=")
+			if fit != "BF" && fit != "FF" && fit != "WF" {
+				return 0, "", "", "", "", "", "", fmt.Errorf("Parametro fit invalido")
+			}
+		}
+	}
+
+	if size == 0 || letter == "" || name == "" {
+		return 0, "", "", "", "", "", "", fmt.Errorf("Parametro obligatorio faltante")
+	}
+
+	// Unidad por defecto es Kilobytes
+	if unit == "" {
+		unit = "K"
+	}
+
+	return size, driveletter, unit, letter, name, fit, parttype, nil
 }
 
 func ReadMBR(filename string) (Types.MBR, error) {
@@ -217,4 +277,37 @@ func ConstructAndValidateFileName(path string, filename string) (string, error) 
 	}
 	// El archivo existe
 	return fullPath, nil
+}
+
+func GenerateDotCode(mbr *Types.MBR) string {
+	var builder strings.Builder
+
+	builder.WriteString("digraph G {\n")
+	builder.WriteString("    node [shape=none];\n")
+	builder.WriteString("    rankdir=\"LR\";\n")
+
+	builder.WriteString("    struct1 [label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\">\n")
+
+	builder.WriteString("    <TR>")
+	// Nodo MBR
+	builder.WriteString("    <TD BGCOLOR=\"yellow\">MBR</TD>")
+
+	// Nodos de particiones
+	for i, partition := range mbr.Partitions {
+		if partition.Status != 0 { // Asumiendo que Status != 0 significa que la partición esta disponible.
+			partitionName := Utils.CleanPartitionName(partition.Name[:])
+			if partitionName == "" {
+				partitionName = fmt.Sprintf("Partition%d", i+1)
+			}
+			builder.WriteString(fmt.Sprintf("    <TD BGCOLOR=\"green\">%s</TD>", partitionName))
+		}
+	}
+
+	builder.WriteString("</TR>\n")
+
+	builder.WriteString("    </TABLE>>];\n")
+
+	builder.WriteString("}\n")
+
+	return builder.String()
 }

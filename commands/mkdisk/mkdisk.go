@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func ExtractMKDISKParams(params []string) (int64, string, error) {
+func ExtractMkdiskParams(params []string) (int64, string, error) {
 	var size int64
 	var unit string = "M" // Megabytes por defecto
 	var fit string = "FF" // First Fit por defecto
@@ -91,15 +91,13 @@ func CreateDiskWithSize(filename string, size int64) {
 }
 
 func ConstructFileName(path string) string {
-	var filename string
 	const baseName = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
 	for _, letter := range baseName {
-		filename = fmt.Sprintf("%s%s", filename, string(letter))
+		filename := fmt.Sprintf("%c.dsk", letter) // Asigna el nombre de archivo actual aquí
 		fullPath := filepath.Join(path, filename)
 		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-			break
+			return fullPath // Retorna inmediatamente el primer nombre de archivo disponible
 		}
 	}
-	return filename
+	return "" // Puedes retornar un error o un valor vacío si todos los nombres están ocupados
 }

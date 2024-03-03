@@ -7,6 +7,6 @@ type Partition struct {
 	Start           int64
 	Size            int64
 	Name            [16]byte
-	PartCorrelative int
+	PartCorrelative int64
 	PartId          [4]byte
 }

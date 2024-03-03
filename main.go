@@ -4,15 +4,17 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path"
 	Fdisk "proyecto1/commands/fdisk"
 	Mkdisk "proyecto1/commands/mkdisk"
+	Rep "proyecto1/commands/rep"
+	Reportes "proyecto1/reportes"
 	Utils "proyecto1/utils"
-	"strconv"
 	"strings"
-	"unicode"
 )
 
 var rutaDiscos string = "./disks/MIA/P1/"
+var archivoBinarioDiscoActual string = ""
 
 func main() {
 	Utils.LimpiarConsola()
@@ -26,8 +28,8 @@ func main() {
 	input = scanner.Text()
 
 	comando, path := parseCommand(input)
-	if comando != "EXECUTE" || path == "" {
-		fmt.Println("Comando no reconocido o ruta de archivo faltante. Uso: EXECUTE <ruta_al_archivo_de_scripts>")
+	if comando != "execute" || path == "" {
+		fmt.Println("Comando no reconocido o ruta de archivo faltante. Uso: execute <ruta_al_archivo_de_scripts>")
 		return
 	}
 
@@ -48,13 +50,13 @@ func main() {
 	for _, command := range commands {
 		if strings.HasPrefix(command, "mkdisk") {
 			params := strings.Fields(command)
-			mkdisk(params[1:])
+			archivoBinarioDiscoActual = mkdisk(params[1:])
 		} else if strings.HasPrefix(command, "fdisk") {
 			params := strings.Fields(command)
 			fdisk(params[1:])
-		} else if command == "rep" {
-			//rep(archivoBinarioDisco)
-			fmt.Println("rep")
+		} else if strings.HasPrefix(command, "rep") {
+			params := strings.Fields(command)
+			rep(archivoBinarioDiscoActual, params[1:])
 		}
 	}
 }
@@ -69,8 +71,8 @@ func parseCommand(input string) (string, string) {
 	var path string
 
 	for _, part := range parts[1:] {
-		if strings.HasPrefix(part, "->path=") {
-			path = strings.TrimPrefix(part, "->path=")
+		if strings.HasPrefix(part, "-path=") {
+			path = strings.TrimPrefix(part, "-path=")
 			break
 		}
 	}
@@ -78,18 +80,18 @@ func parseCommand(input string) (string, string) {
 	return command, path
 }
 
-func mkdisk(params []string) {
-	size, unit, err := Mkdisk.ExtractMKDISKParams(params)
+func mkdisk(params []string) string {
+	size, unit, err := Mkdisk.ExtractMkdiskParams(params)
 	if err != nil {
 		fmt.Println("Error al procesar los parámetros MKDISK:", err)
-		return
+		return ""
 	}
 
 	// Tamaño del disco en bytes
 	sizeInBytes, err := Mkdisk.CalculateDiskSize(size, unit)
 	if err != nil {
 		fmt.Println("Error:", err)
-		return
+		return ""
 	}
 
 	// Construye el nombre del disco apropiado
@@ -97,66 +99,14 @@ func mkdisk(params []string) {
 
 	// Creación del disco con el tamaño calculado en bytes
 	Mkdisk.CreateDiskWithSize(filename, sizeInBytes)
-}
 
-func extractFdiskParams(params []string) (int64, string, string, string, string, string, string, error) {
-	var size int64
-	var driveletter, unit, letter, name, fit, parttype string
+	fmt.Println("Disco creado con éxito!")
 
-	for _, param := range params {
-		switch {
-		case strings.HasPrefix(param, "-size="):
-			sizeStr := strings.TrimPrefix(param, "-size=")
-			var err error
-			size, err = strconv.ParseInt(sizeStr, 10, 64)
-			if err != nil || size <= 0 {
-				return 0, "", "", "", "", "", "", fmt.Errorf("Parametro tamaño invalido")
-			}
-		case strings.HasPrefix(param, "-driveletter="):
-			driveletter = strings.TrimPrefix(param, "-driveletter=")
-			// Validar la letra de la partición
-			if len(driveletter) != 1 || !unicode.IsLetter(rune(driveletter[0])) {
-				return 0, "", "", "", "", "", "", fmt.Errorf("La letra de la partición debe ser un único carácter alfabérico")
-			}
-		case strings.HasPrefix(param, "-name="):
-			name = strings.TrimPrefix(param, "-name=")
-			// Validar el nombre de la partición
-			if len(name) > 16 {
-				return 0, "", "", "", "", "", "", fmt.Errorf("El nombre de la partición no puede exceder los 16 caracteres")
-			}
-		case strings.HasPrefix(param, "-unit="):
-			unit = strings.TrimPrefix(param, "-unit=")
-			if unit != "B" && unit != "K" && unit != "M" {
-				return 0, "", "", "", "", "", "", fmt.Errorf("Parametro unidad invalido")
-			}
-		case strings.HasPrefix(param, "-type="):
-			parttype = strings.TrimPrefix(param, "-type=")
-			// Validar el tipo de la partición
-			if parttype != "P" && parttype != "E" && parttype != "L" {
-				return 0, "", "", "", "", "", "", fmt.Errorf("El tipo de la partición debe ser 'P', 'E' o 'L'")
-			}
-		case strings.HasPrefix(param, "-fit="):
-			fit = strings.TrimPrefix(param, "-fit=")
-			if fit != "BF" && fit != "FF" && fit != "WF" {
-				return 0, "", "", "", "", "", "", fmt.Errorf("Parametro fit invalido")
-			}
-		}
-	}
-
-	if size == 0 || letter == "" || name == "" {
-		return 0, "", "", "", "", "", "", fmt.Errorf("Parametro obligatorio faltante")
-	}
-
-	// Unidad por defecto es Kilobytes
-	if unit == "" {
-		unit = "K"
-	}
-
-	return size, driveletter, unit, letter, name, fit, parttype, nil
+	return filename
 }
 
 func fdisk(params []string) {
-	size, driveletter, _, _, _, fit, parttype, err := extractFdiskParams(params)
+	size, driveletter, _, _, _, fit, parttype, err := Fdisk.ExtractFdiskParams(params)
 	// size, driveletter, unit, letter, name, fit, parttype, err := extractFdiskParams(params)
 
 	if err != nil {
@@ -212,4 +162,29 @@ func fdisk(params []string) {
 	// 		fmt.Println("Particion creada exitosamente.")
 	// 	}
 	// }
+}
+
+func rep(diskFileName string, params []string) {
+	reportFileName, reportPath, err := Rep.ExtractRepParams(params)
+
+	if err != nil {
+		fmt.Println("Error al procesar los parámetros REP:", err)
+	}
+
+	// Leer el MBR existente
+	mbr, err := Fdisk.ReadMBR(diskFileName)
+	if err != nil {
+		fmt.Println("Error leyendo el MBR:", err)
+		return
+	}
+
+	dotCode := Fdisk.GenerateDotCode(&mbr)
+
+	nombreArchivoDot := path.Join(reportPath, reportFileName+".dot")
+	nombreArchivoPng := path.Join(reportPath, reportFileName+".png")
+
+	Reportes.CrearArchivo(nombreArchivoDot)
+	Reportes.EscribirArchivo(dotCode, nombreArchivoDot)
+	Reportes.Ejecutar(nombreArchivoPng, nombreArchivoDot)
+	// Reportes.VerReporte(nombreArchivoPng)
 }

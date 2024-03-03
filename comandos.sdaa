@@ -1,0 +1,2 @@
+mkdisk -size=20 -unit=M -fit=BF
+rep -name=mbr -path=.\reportes
