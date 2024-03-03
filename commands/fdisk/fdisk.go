@@ -447,3 +447,79 @@ func getPartitionDetails(mbr *Types.MBR, partitionName string) (int64, int64, er
 	}
 	return 0, 0, fmt.Errorf("la partición '%s' no se encontró", partitionName)
 }
+
+func canAdjustPartitionSize(mbr *Types.MBR, partitionIndex int, sizeInBytes int64) bool {
+	currentPartition := mbr.Partitions[partitionIndex]
+
+	// Verificar si se reduce el tamaño y se mantiene positivo
+	if sizeInBytes < 0 && (currentPartition.Size+sizeInBytes) < 0 {
+		return false // No se puede reducir la partición a tamaño negativo
+	}
+
+	// Verificar si se puede expandir la partición
+	if sizeInBytes > 0 {
+		// Calcula el espacio total utilizado por todas las particiones
+		var totalUsedSpace int64 = 0
+		for _, partition := range mbr.Partitions {
+			if partition.Status != 0 { // Asume Status != 0 como partición activa
+				totalUsedSpace += partition.Size
+			}
+		}
+
+		// Espacio disponible en el disco
+		spaceAvailable := mbr.MbrTamano - totalUsedSpace
+
+		// Verificar si el espacio disponible es suficiente para la expansión
+		if sizeInBytes > spaceAvailable {
+			return false // No hay suficiente espacio para expandir
+		}
+	}
+
+	return true // El ajuste de tamaño es viable
+}
+
+func findPartitionByName(mbr *Types.MBR, partitionName string) (int, Types.Partition) {
+	for i, partition := range mbr.Partitions {
+		// Asume que el nombre de la partición se almacena en un array de bytes y necesita ser convertido a string
+		if string(partition.Name[:]) == partitionName {
+			return i, partition
+		}
+	}
+	// Retorna -1 y una partición vacía si no se encuentra
+	return -1, Types.Partition{}
+}
+
+func convertUnitToAddValue(addValue int64, unit string) int64 {
+	switch unit {
+	case "B":
+		return addValue
+	case "K":
+		return addValue * 1024
+	case "M":
+		return addValue * 1024 * 1024
+	default:
+		return 0
+	}
+}
+
+func AdjustPartitionSize(mbr *Types.MBR, partitionName string, addValue int64, unit string) error {
+	// Conversión del valor add según la unidad
+	var sizeInBytes int64 = convertUnitToAddValue(addValue, unit)
+
+	partitionIndex, _ := findPartitionByName(mbr, partitionName)
+	if partitionIndex == -1 {
+		return fmt.Errorf("la partición '%s' no se encontró", partitionName)
+	}
+
+	// Verifica si se puede agregar o quitar espacio
+	if !canAdjustPartitionSize(mbr, partitionIndex, sizeInBytes) {
+		return fmt.Errorf("no es posible ajustar el tamaño de la partición '%s'", partitionName)
+	}
+
+	// Ajusta el tamaño de la partición
+	mbr.Partitions[partitionIndex].Size += sizeInBytes
+
+	// Opcional: Rellenar con '\0' si se reduce el tamaño y se especifica "Full"
+
+	return nil
+}

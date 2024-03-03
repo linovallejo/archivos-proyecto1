@@ -142,6 +142,12 @@ func fdisk(params []string) {
 		Fdisk.DeletePartition(&mbr, archivoBinarioDisco, name)
 	}
 
+	// Parametro add
+	if addValue > 0 || addValue < 0 {
+		Fdisk.AdjustPartitionSize(&mbr, name, addValue, unit)
+		return
+	}
+
 	// Validar la creación de la partición
 	err = Fdisk.ValidatePartitionTypeCreation(&mbr, parttype)
 	if err != nil {
