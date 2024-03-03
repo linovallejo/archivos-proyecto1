@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func ExtractMkdiskParams(params []string) (int64, string, error) {
+func ExtractMkdiskParams(params []string) (int64, string, string, error) {
 	var size int64
 	var unit string = "M" // Megabytes por defecto
 	var fit string = "FF" // First Fit por defecto
@@ -22,26 +22,26 @@ func ExtractMkdiskParams(params []string) (int64, string, error) {
 			var err error
 			size, err = strconv.ParseInt(sizeStr, 10, 64)
 			if err != nil || size <= 0 {
-				return 0, "", fmt.Errorf("Parametro tamaño invalido")
+				return 0, "", "", fmt.Errorf("Parametro tamaño invalido")
 			}
 		} else if strings.HasPrefix(param, "-unit=") {
 			unit = strings.TrimPrefix(param, "-unit=")
 			if unit != "K" && unit != "M" {
-				return 0, "", fmt.Errorf("Parametro unidad invalido")
+				return 0, "", "", fmt.Errorf("Parametro unidad invalido")
 			}
 		} else if strings.HasPrefix(param, "-fit=") {
 			fit = strings.TrimPrefix(param, "-fit=")
 			if fit != "FF" && fit != "BF" && fit != "WF" {
-				return 0, "", fmt.Errorf("Parametro ajuste invalido")
+				return 0, "", "", fmt.Errorf("Parametro ajuste invalido")
 			}
 		}
 	}
 
 	if size == 0 {
-		return 0, "", fmt.Errorf("Parametro tamaño es obligatorio")
+		return 0, "", "", fmt.Errorf("Parametro tamaño es obligatorio")
 	}
 
-	return size, unit, nil
+	return size, unit, fit, nil
 }
 
 func CalculateDiskSize(size int64, unit string) (int64, error) {

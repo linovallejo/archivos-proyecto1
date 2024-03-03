@@ -15,6 +15,7 @@ import (
 
 var rutaDiscos string = "./disks/MIA/P1/"
 var archivoBinarioDiscoActual string = ""
+var ajusteParticionActual string = "" // first fit, best fit, worst fit
 
 func main() {
 	Utils.LimpiarConsola()
@@ -81,7 +82,7 @@ func parseCommand(input string) (string, string) {
 }
 
 func mkdisk(params []string) string {
-	size, unit, err := Mkdisk.ExtractMkdiskParams(params)
+	size, unit, diskFit, err := Mkdisk.ExtractMkdiskParams(params)
 	if err != nil {
 		fmt.Println("Error al procesar los parámetros MKDISK:", err)
 		return ""
@@ -97,6 +98,8 @@ func mkdisk(params []string) string {
 	// Construye el nombre del disco apropiado
 	var filename string = Mkdisk.ConstructFileName(rutaDiscos)
 
+	ajusteParticionActual = diskFit
+
 	// Creación del disco con el tamaño calculado en bytes
 	Mkdisk.CreateDiskWithSize(filename, sizeInBytes)
 
@@ -106,7 +109,7 @@ func mkdisk(params []string) string {
 }
 
 func fdisk(params []string) {
-	size, driveletter, _, _, _, fit, parttype, err := Fdisk.ExtractFdiskParams(params)
+	size, driveletter, name, unit, parttype, fit, delete, addValue, err := Fdisk.ExtractFdiskParams(params)
 	// size, driveletter, unit, letter, name, fit, parttype, err := extractFdiskParams(params)
 
 	if err != nil {
@@ -116,7 +119,7 @@ func fdisk(params []string) {
 
 	// Leer el MBR existente
 	filename := driveletter + ".dsk"
-	archivoBinarioDisco, err := Fdisk.ConstructAndValidateFileName(rutaDiscos, filename)
+	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -128,13 +131,32 @@ func fdisk(params []string) {
 		return
 	}
 
+	// Validar el nombre de la partición
+	err = Fdisk.ValidatePartitionName(&mbr, name, delete)
+	if err != nil {
+		fmt.Println("Error al validar el nombre de la partición:", err)
+	}
+
+	// Parametro delete
+	if delete == "full" {
+		Fdisk.DeletePartition(&mbr, archivoBinarioDisco, name)
+	}
+
 	// Validar la creación de la partición
-	err = Fdisk.ValidatePartitionCreation(&mbr, parttype)
+	err = Fdisk.ValidatePartitionTypeCreation(&mbr, parttype)
 	if err != nil {
 		fmt.Println("Error al validar la creación de la partición:", err)
 	}
 
-	err = Fdisk.AdjustAndCreatePartition(&mbr, size, fit)
+	// Tamaño de la partición en bytes
+	sizeInBytes, err := Fdisk.CalculateSize(size, unit)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	// Ajustar y crear la partición
+	err = Fdisk.AdjustAndCreatePartition(&mbr, sizeInBytes, fit)
 	if err != nil {
 		fmt.Println("Error al ajustar y crear la partición:", err)
 	} else {
