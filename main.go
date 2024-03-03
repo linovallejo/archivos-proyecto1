@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	Fdisk "proyecto1/commands/fdisk"
 	Mkdisk "proyecto1/commands/mkdisk"
 	Rep "proyecto1/commands/rep"
@@ -193,7 +193,7 @@ func fdisk(params []string) {
 }
 
 func rep(diskFileName string, params []string) {
-	reportFileName, reportPath, err := Rep.ExtractRepParams(params)
+	reportName, reportPathAndFileName, err := Rep.ExtractRepParams(params)
 
 	if err != nil {
 		fmt.Println("Error al procesar los parámetros REP:", err)
@@ -206,13 +206,32 @@ func rep(diskFileName string, params []string) {
 		return
 	}
 
-	dotCode := Fdisk.GenerateDotCode(&mbr)
+	var dotCode string
+	switch reportName {
+	case "mbr":
+		dotCode = Fdisk.GenerateDotCodeMbr(&mbr)
+	case "disk":
+		dotCode = Fdisk.GenerateDotCodeDisk(&mbr)
+	}
 
-	nombreArchivoDot := path.Join(reportPath, reportFileName+".dot")
-	nombreArchivoPng := path.Join(reportPath, reportFileName+".png")
+	extension := filepath.Ext(reportPathAndFileName)
+	pathWithoutExt := reportPathAndFileName[:len(reportPathAndFileName)-len(extension)]
+
+	nombreArchivoDot := pathWithoutExt + ".dot"
+	nombreArchivoReporte := reportPathAndFileName
+	switch extension {
+	case ".pdf":
+		nombreArchivoReporte = pathWithoutExt + ".pdf"
+	case ".txt":
+		nombreArchivoReporte = pathWithoutExt + ".txt"
+	case ".png":
+		nombreArchivoReporte = pathWithoutExt + ".png"
+	default:
+		nombreArchivoReporte = reportPathAndFileName
+	}
 
 	Reportes.CrearArchivo(nombreArchivoDot)
 	Reportes.EscribirArchivo(dotCode, nombreArchivoDot)
-	Reportes.Ejecutar(nombreArchivoPng, nombreArchivoDot)
+	Reportes.Ejecutar(nombreArchivoReporte, nombreArchivoDot, extension)
 	// Reportes.VerReporte(nombreArchivoPng)
 }

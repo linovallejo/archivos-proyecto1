@@ -2,7 +2,7 @@ package types
 
 type Partition struct {
 	Status          byte
-	Type            byte
+	Type            [1]byte
 	Fit             byte
 	Start           int64
 	Size            int64

@@ -35,7 +35,7 @@ func EscribirArchivo(contenido string, nombre_archivo string) {
 	}
 }
 
-func Ejecutar(nombre_imagen string, archivo string) {
+func Ejecutar(nombre_imagen string, archivo string, extension string) {
 	path, _ := exec.LookPath("dot")
 	cmd, _ := exec.Command(path, "-Tjpg", archivo).Output()
 	mode := 0777
