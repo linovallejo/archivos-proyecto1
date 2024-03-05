@@ -24,3 +24,6 @@ go.work
 *.dot
 *.png
 *.dsk
+*.pdf
+*.txt
+launch.json

@@ -3,6 +3,7 @@ package Mkdisk
 import (
 	"encoding/binary"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	Types "proyecto1/types"
@@ -60,7 +61,7 @@ func CreateDiskWithSize(filename string, size int64) {
 	mbr.MbrTamano = size
 	currentTime := time.Now()
 	copy(mbr.MbrFechaCreacion[:], currentTime.Format("2006-01-02T15:04:05"))
-	mbr.MbrDiskSignature = 123456789 // Example signature
+	mbr.MbrDiskSignature = generateDiskSignature()
 
 	file, err := os.Create(filename)
 	if err != nil {
@@ -88,6 +89,8 @@ func CreateDiskWithSize(filename string, size int64) {
 	}
 
 	fmt.Println("Disco creado correctamente con tamaño:", size, "bytes.")
+
+	printMBRState(&mbr)
 }
 
 func ConstructFileName(path string) string {
@@ -100,4 +103,20 @@ func ConstructFileName(path string) string {
 		}
 	}
 	return "" // Puedes retornar un error o un valor vacío si todos los nombres están ocupados
+}
+
+func printMBRState(mbr *Types.MBR) {
+	fmt.Println("Estado actual del MBR:")
+	fmt.Printf("Tamaño del Disco: %d\n", mbr.MbrTamano)
+	fmt.Printf("Firma del Disco: %d\n", mbr.MbrDiskSignature)
+	for i, p := range mbr.Partitions {
+		fmt.Printf("Partición %d: %+v\n", i+1, p)
+	}
+}
+
+func generateDiskSignature() (signature int64) {
+	source := rand.NewSource(time.Now().UnixNano())
+	generator := rand.New(source)
+	signature = generator.Int63()
+	return
 }

@@ -131,7 +131,10 @@ func writeMBR(filename string, mbr Types.MBR) error {
 	return err
 }
 
-func createPartition(mbr *Types.MBR, size int64, unit string, letter string, name string) error {
+func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typePart, fit, name string) error {
+	var partitionName [16]byte
+	copy(partitionName[:], name)
+
 	var sizeInBytes int64
 	switch unit {
 	case "B":
@@ -171,17 +174,61 @@ func createPartition(mbr *Types.MBR, size int64, unit string, letter string, nam
 		return fmt.Errorf("No hay suficiente espacio para la nueva partición")
 	}
 
+	// Convertir typePart y fit a sus representaciones de byte correspondientes
+	var typeByte [1]byte
+	typeByte[0] = typePart[0] // 'P', 'E' o 'L'
+	var fitByte byte
+	switch fit {
+	case "BF":
+		fitByte = 'B'
+	case "FF":
+		fitByte = 'F'
+	case "WF":
+		fitByte = 'W'
+	default:
+		fitByte = 'F' // FF es el valor predeterminado
+	}
+
 	// Crear y "setear" la nueva partición
 	newPartition := Types.Partition{
 		Status: 1,
-		Type:   0,
-		Fit:    0,
-		Start:  totalUsedSpace + 1,
+		Type:   typeByte,
+		Fit:    fitByte,
+		Start:  start,
 		Size:   sizeInBytes,
-		Name:   [16]byte{},
+		Name:   partitionName,
 	}
+
 	copy(newPartition.Name[:], name)
 	mbr.Partitions[partitionIndex] = newPartition
+
+	printMBRState(mbr)
+
+	return nil
+}
+
+func AdjustAndCreatePartition(mbr *Types.MBR, size int64, unit, typePart, fit, name string) error {
+	spaces := calculateAvailableSpaces(mbr)
+	var selectedSpace *Space
+
+	switch fit {
+	case "FF":
+		selectedSpace = findFirstFit(spaces, size)
+	case "BF":
+		selectedSpace = findBestFit(spaces, size)
+	case "WF":
+		selectedSpace = findWorstFit(spaces, size)
+	default: //WF por defecto
+		selectedSpace = findWorstFit(spaces, size)
+	}
+
+	if selectedSpace == nil {
+		return fmt.Errorf("No se encontró espacio adecuado para la partición")
+	}
+
+	// Aquí, usarías selectedSpace.Start como la posición de inicio de tu nueva partición
+	// y procederías a crear la partición con el tamaño especificado.
+	createPartition(mbr, selectedSpace.Start, size, unit, typePart, fit, name)
 
 	return nil
 }
@@ -238,40 +285,15 @@ func findWorstFit(spaces []Space, size int64) *Space {
 }
 
 // Asume que tienes una función que acepta estos parámetros y crea la partición.
-func AdjustAndCreatePartition(mbr *Types.MBR, size int64, fit string) error {
-	spaces := calculateAvailableSpaces(mbr)
-	var selectedSpace *Space
-
-	switch fit {
-	case "FF":
-		selectedSpace = findFirstFit(spaces, size)
-	case "BF":
-		selectedSpace = findBestFit(spaces, size)
-	case "WF":
-		selectedSpace = findWorstFit(spaces, size)
-	default: //WF por defecto
-		selectedSpace = findWorstFit(spaces, size)
-	}
-
-	if selectedSpace == nil {
-		return fmt.Errorf("No se encontró espacio adecuado para la partición")
-	}
-
-	// Aquí, usarías selectedSpace.Start como la posición de inicio de tu nueva partición
-	// y procederías a crear la partición con el tamaño especificado.
-	createPartition(mbr, size, "B", "", "")
-
-	return nil
-}
 
 func ValidatePartitionTypeCreation(mbr *Types.MBR, partType string) error {
 	var countP, countE int
 
 	for _, partition := range mbr.Partitions {
 		switch partition.Type {
-		case 'P': // Asume que 'P' representa una partición Primaria
+		case [1]byte{'P'}: // Asume que 'P' representa una partición Primaria
 			countP++
-		case 'E': // Asume que 'E' representa una partición Extendida
+		case [1]byte{'E'}: // Asume que 'E' representa una partición Extendida
 			countE++
 		}
 	}
@@ -335,34 +357,76 @@ func GenerateDotCodeMbr(mbr *Types.MBR) string {
 	return builder.String()
 }
 
+// func GenerateDotCodeDisk1(mbr *Types.MBR) string {
+// 	var buffer bytes.Buffer
+
+// 	// Escribir el inicio del archivo DOT
+// 	buffer.WriteString("digraph G {\n")
+// 	buffer.WriteString("node [shape=plaintext]\n")
+// 	buffer.WriteString("struct1 [label=<\n")
+// 	buffer.WriteString("<table border=\"0\" cellborder=\"1\" cellspacing=\"0\" cellpadding=\"4\">\n")
+
+// 	// Generar las filas para las particiones
+// 	for _, p := range mbr.Partitions {
+// 		if p.Status == 0 {
+// 			buffer.WriteString(fmt.Sprintf("<tr><td colspan=\"3\">Libre<br/>%d%% del disco</td></tr>\n", p.Size))
+// 		} else {
+// 			rowSpan := "2"
+// 			if string(p.Type[:]) == "E" || string(p.Type[:]) == "L" {
+// 				rowSpan = "1" // Las particiones lógicas no se extienden a través de dos filas
+// 			}
+// 			buffer.WriteString(fmt.Sprintf("<tr><td rowspan=\"%s\">%s<br/>%d%% del disco</td></tr>\n", rowSpan, p.Name, p.Size))
+// 		}
+// 	}
+
+// 	// Cerrar las etiquetas de tabla y DOT
+// 	buffer.WriteString("</table>\n")
+// 	buffer.WriteString(">];\n")
+// 	buffer.WriteString("}\n")
+
+// 	return buffer.String()
+// }
+
 func GenerateDotCodeDisk(mbr *Types.MBR) string {
-	var buffer bytes.Buffer
+	var dot bytes.Buffer
 
-	// Escribir el inicio del archivo DOT
-	buffer.WriteString("digraph G {\n")
-	buffer.WriteString("node [shape=plaintext]\n")
-	buffer.WriteString("struct1 [label=<\n")
-	buffer.WriteString("<table border=\"0\" cellborder=\"1\" cellspacing=\"0\" cellpadding=\"4\">\n")
+	dot.WriteString("digraph G {\n")
+	dot.WriteString("node [shape=plaintext]\n")
+	dot.WriteString("struct1 [label=<\n")
+	dot.WriteString("<table border=\"0\" cellborder=\"1\" cellspacing=\"0\" cellpadding=\"4\">\n")
 
-	// Generar las filas para las particiones
+	// Primera fila para MBR y particiones que no sean lógicas
+	dot.WriteString("<tr>\n")
+	dot.WriteString("<td>MBR</td>\n") // MBR siempre está presente
 	for _, p := range mbr.Partitions {
-		if p.Status == 0 {
-			buffer.WriteString(fmt.Sprintf("<tr><td colspan=\"3\">Libre<br/>%d%% del disco</td></tr>\n", p.Size))
-		} else {
-			rowSpan := "2"
-			if string(p.Type[:]) == "E" || string(p.Type[:]) == "L" {
-				rowSpan = "1" // Las particiones lógicas no se extienden a través de dos filas
+		if p.Status != 0 && p.Type != [1]byte{'L'} { // Revisar si la partición no es lógica y está activa
+			partitionName := string(p.Name[:]) // Convertir el nombre de la partición a string
+			dot.WriteString(fmt.Sprintf("<td>%s<br/>%d bytes</td>\n", partitionName, p.Size))
+		}
+	}
+	dot.WriteString("</tr>\n")
+
+	// Segunda fila para particiones lógicas si existe una extendida
+	for _, p := range mbr.Partitions {
+		if p.Status != 0 && p.Type == [1]byte{'E'} { // Si hay una extendida, asumimos que hay lógicas
+			dot.WriteString("<tr>\n")
+			dot.WriteString("<td colspan=\"3\">Extendida</td>\n") // Colspan basado en la cantidad de lógicas
+			for _, subP := range mbr.Partitions {
+				if subP.Status != 0 && subP.Type == [1]byte{'L'} { // Revisar si la partición es lógica
+					partitionName := string(subP.Name[:]) // Convertir el nombre de la partición a string
+					dot.WriteString(fmt.Sprintf("<td>%s<br/>%d bytes</td>\n", partitionName, subP.Size))
+				}
 			}
-			buffer.WriteString(fmt.Sprintf("<tr><td rowspan=\"%s\">%s<br/>%d%% del disco</td></tr>\n", rowSpan, p.Name, p.Size))
+			dot.WriteString("</tr>\n")
+			break // Solo una fila para las lógicas
 		}
 	}
 
-	// Cerrar las etiquetas de tabla y DOT
-	buffer.WriteString("</table>\n")
-	buffer.WriteString(">];\n")
-	buffer.WriteString("}\n")
+	dot.WriteString("</table>\n")
+	dot.WriteString(">];\n")
+	dot.WriteString("}\n")
 
-	return buffer.String()
+	return dot.String()
 }
 
 func ValidatePartitionName(mbr *Types.MBR, name string, delete string) error {
@@ -421,7 +485,7 @@ func DeletePartition(mbr *Types.MBR, filename string, partitionName string) erro
 
 	// Eliminar la partición
 	// Si la partición es extendida, también elimina sus particiones lógicas
-	if mbr.Partitions[partitionIndex].Type == 'E' {
+	if string(mbr.Partitions[partitionIndex].Type[:]) == "E" {
 		// TODO
 		// Implementar lógica para eliminar particiones lógicas si es necesario
 		return nil
@@ -553,4 +617,13 @@ func AdjustPartitionSize(mbr *Types.MBR, partitionName string, addValue int64, u
 	// Opcional: Rellenar con '\0' si se reduce el tamaño y se especifica "Full"
 
 	return nil
+}
+
+func printMBRState(mbr *Types.MBR) {
+	fmt.Println("Estado actual del MBR:")
+	fmt.Printf("Tamaño del Disco: %d\n", mbr.MbrTamano)
+	fmt.Printf("Firma del Disco: %d\n", mbr.MbrDiskSignature)
+	for i, p := range mbr.Partitions {
+		fmt.Printf("Partición %d: %+v\n", i+1, p)
+	}
 }

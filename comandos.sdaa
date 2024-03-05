@@ -1,2 +1,3 @@
 mkdisk -size=20 -unit=M -fit=BF
-rep -name=mbr -path=.\reportes
+fdisk -size=2 -unit=M -driveletter=A -name=Particion1 -type=P -fit=BF
+rep -name=disk -path=.\reportes\disk.pdf
