@@ -110,7 +110,7 @@ func mkdisk(params []string) string {
 
 func fdisk(params []string) {
 	size, driveletter, name, unit, typePart, fit, delete, addValue, err := Fdisk.ExtractFdiskParams(params)
-	// size, driveletter, unit, letter, name, fit, parttype, err := extractFdiskParams(params)
+	//fmt.Println("size:", size, "driveletter:", driveletter, "name:", name, "unit:", unit, "typePart:", typePart, "fit:", fit, "delete:", delete, "addValue:", addValue)
 
 	if err != nil {
 		fmt.Println("Error al procesar los parámetros FDISK:", err)
@@ -155,14 +155,14 @@ func fdisk(params []string) {
 	}
 
 	// Tamaño de la partición en bytes
-	sizeInBytes, err := Fdisk.CalculateSize(size, unit)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
+	// sizeInBytes, err := Fdisk.CalculateSize(size, unit)
+	// if err != nil {
+	// 	fmt.Println("Error:", err)
+	// 	return
+	// }
 
 	// Ajustar y crear la partición
-	err = Fdisk.AdjustAndCreatePartition(&mbr, sizeInBytes, unit, typePart, fit, name)
+	err = Fdisk.AdjustAndCreatePartition(&mbr, size, unit, typePart, fit, name)
 	if err != nil {
 		fmt.Println("Error al ajustar y crear la partición:", err)
 	} else {

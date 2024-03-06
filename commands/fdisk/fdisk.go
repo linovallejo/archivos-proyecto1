@@ -131,11 +131,30 @@ func writeMBR(filename string, mbr Types.MBR) error {
 	return err
 }
 
+func calculateTotalUsedSpace(mbr Types.MBR) (int64, error) {
+	var totalUsedSpace int64 = 0
+	for _, partition := range mbr.Partitions {
+		if partition.Status != 0 {
+			if partition.Size < 0 {
+				return 0, fmt.Errorf("tamano de partición invalido: %d", partition.Size)
+			}
+			newTotal := totalUsedSpace + partition.Size
+			// Check for overflow
+			if newTotal < totalUsedSpace {
+				return 0, fmt.Errorf("integer overflow detected when calculating total used space")
+			}
+			totalUsedSpace = newTotal
+		}
+	}
+	return totalUsedSpace, nil
+}
+
 func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typePart, fit, name string) error {
 	var partitionName [16]byte
 	copy(partitionName[:], name)
 
-	var sizeInBytes int64
+	var sizeInBytes int64 = 0
+	fmt.Println("El tamaño de la partición es: ", size, " en ", unit)
 	switch unit {
 	case "B":
 		sizeInBytes = size
@@ -147,6 +166,7 @@ func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typeP
 		return fmt.Errorf("Unidad invalida")
 	}
 
+	fmt.Println("El tamaño calculado de la partición es: ", sizeInBytes)
 	// Comprbar si hay un slot disponible para la partición disponible y validar la unicidad del nombre
 	partitionIndex := -1
 	for i, partition := range mbr.Partitions {
@@ -163,16 +183,27 @@ func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typeP
 		return fmt.Errorf("No hay slots disponibles para la nueva partición")
 	}
 
+	fmt.Println("El indice de La partición es: ", partitionIndex)
+
 	// Verifica si hay espacio suficiente para la nueva partición (asumiendo una asignación lineal para simplificar).
 	var totalUsedSpace int64 = 0
-	for _, partition := range mbr.Partitions {
-		if partition.Status != 0 {
-			totalUsedSpace += partition.Size
-		}
+	var err error
+
+	totalUsedSpace, err = calculateTotalUsedSpace(*mbr)
+	if err != nil {
+		fmt.Println("Error calculando el espacio total usado: ", err)
+		return err
 	}
-	if totalUsedSpace+sizeInBytes > mbr.MbrTamano {
+
+	fmt.Println("El valor de totalUsedSpace es: ", totalUsedSpace)
+	fmt.Println("El valor de sizeInBytes es: ", sizeInBytes)
+	fmt.Println("El valor de mbr.MbrTamano es: ", mbr.MbrTamano)
+
+	if (totalUsedSpace + sizeInBytes) > mbr.MbrTamano {
 		return fmt.Errorf("No hay suficiente espacio para la nueva partición")
 	}
+
+	fmt.Println("Espacio disponible: ", mbr.MbrTamano-totalUsedSpace)
 
 	// Convertir typePart y fit a sus representaciones de byte correspondientes
 	var typeByte [1]byte
@@ -189,6 +220,9 @@ func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typeP
 		fitByte = 'F' // FF es el valor predeterminado
 	}
 
+	fmt.Println("El valor de typeByte es: ", typeByte[0])
+	fmt.Println("El valor de fitByte es: ", fitByte)
+
 	// Crear y "setear" la nueva partición
 	newPartition := Types.Partition{
 		Status: 1,
@@ -198,6 +232,12 @@ func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typeP
 		Size:   sizeInBytes,
 		Name:   partitionName,
 	}
+
+	fmt.Println("La nueva partición es: ", newPartition)
+
+	fmt.Println("Particion creada con exito")
+	fmt.Println(newPartition.Name)
+	fmt.Println("------------------------------------------------")
 
 	copy(newPartition.Name[:], name)
 	mbr.Partitions[partitionIndex] = newPartition
@@ -228,7 +268,10 @@ func AdjustAndCreatePartition(mbr *Types.MBR, size int64, unit, typePart, fit, n
 
 	// Aquí, usarías selectedSpace.Start como la posición de inicio de tu nueva partición
 	// y procederías a crear la partición con el tamaño especificado.
-	createPartition(mbr, selectedSpace.Start, size, unit, typePart, fit, name)
+	err := createPartition(mbr, selectedSpace.Start, size, unit, typePart, fit, name)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
