@@ -8,6 +8,7 @@ import (
 	Fdisk "proyecto1/commands/fdisk"
 	Mkdisk "proyecto1/commands/mkdisk"
 	Rep "proyecto1/commands/rep"
+	Rmdisk "proyecto1/commands/rmdisk"
 	Reportes "proyecto1/reportes"
 	Utils "proyecto1/utils"
 	"strings"
@@ -180,6 +181,26 @@ func fdisk(params []string) {
 		fmt.Println("Error al ajustar y crear la partición:", err)
 	} else {
 		fmt.Println("main.go - Partición creada exitosamente.")
+	}
+}
+
+func rmdisk(params []string) {
+	driveletter, err := Rmdisk.ExtractRmdiskParams(params)
+	if err != nil {
+		fmt.Println("Error al procesar los parámetros RMDISK:", err)
+	}
+
+	// Leer el MBR existente
+	filename := driveletter + ".dsk"
+	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	err = Rmdisk.RemoveDisk(archivoBinarioDisco)
+	if err != nil {
+		fmt.Println(err)
 	}
 }
 

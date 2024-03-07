@@ -400,36 +400,6 @@ func GenerateDotCodeMbr(mbr *Types.MBR) string {
 	return builder.String()
 }
 
-// func GenerateDotCodeDisk1(mbr *Types.MBR) string {
-// 	var buffer bytes.Buffer
-
-// 	// Escribir el inicio del archivo DOT
-// 	buffer.WriteString("digraph G {\n")
-// 	buffer.WriteString("node [shape=plaintext]\n")
-// 	buffer.WriteString("struct1 [label=<\n")
-// 	buffer.WriteString("<table border=\"0\" cellborder=\"1\" cellspacing=\"0\" cellpadding=\"4\">\n")
-
-// 	// Generar las filas para las particiones
-// 	for _, p := range mbr.Partitions {
-// 		if p.Status == 0 {
-// 			buffer.WriteString(fmt.Sprintf("<tr><td colspan=\"3\">Libre<br/>%d%% del disco</td></tr>\n", p.Size))
-// 		} else {
-// 			rowSpan := "2"
-// 			if string(p.Type[:]) == "E" || string(p.Type[:]) == "L" {
-// 				rowSpan = "1" // Las particiones lógicas no se extienden a través de dos filas
-// 			}
-// 			buffer.WriteString(fmt.Sprintf("<tr><td rowspan=\"%s\">%s<br/>%d%% del disco</td></tr>\n", rowSpan, p.Name, p.Size))
-// 		}
-// 	}
-
-// 	// Cerrar las etiquetas de tabla y DOT
-// 	buffer.WriteString("</table>\n")
-// 	buffer.WriteString(">];\n")
-// 	buffer.WriteString("}\n")
-
-// 	return buffer.String()
-// }
-
 func GenerateDotCodeDisk(mbr *Types.MBR) string {
 	var dot bytes.Buffer
 
