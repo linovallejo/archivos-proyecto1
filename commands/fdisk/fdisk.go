@@ -95,23 +95,23 @@ func ExtractFdiskParams(params []string) (int64, string, string, string, string,
 	return size, driveletter, name, unit, parttype, fit, delete, addValue, nil
 }
 
-func ReadMBR(filename string) (Types.MBR, error) {
+func ReadMBR(filename string) (*Types.MBR, error) {
 	var mbr Types.MBR
 
 	file, err := os.Open(filename)
 	if err != nil {
-		return mbr, err
+		return &mbr, err
 	}
 	defer file.Close()
 
 	// Omitir el byte nulo inicial
 	_, err = file.Seek(1, io.SeekStart)
 	if err != nil {
-		return mbr, err
+		return &mbr, err
 	}
 
 	err = binary.Read(file, binary.LittleEndian, &mbr)
-	return mbr, err
+	return &mbr, err
 }
 
 func writeMBR(filename string, mbr Types.MBR) error {
@@ -149,12 +149,12 @@ func calculateTotalUsedSpace(mbr Types.MBR) (int64, error) {
 	return totalUsedSpace, nil
 }
 
-func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typePart, fit, name string) error {
+func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typePart, fit, name string, diskFileName string) error {
 	var partitionName [16]byte
 	copy(partitionName[:], name)
 
 	var sizeInBytes int64 = 0
-	fmt.Println("El tamaño de la partición es: ", size, " en ", unit)
+	// fmt.Println("El tamaño de la partición es: ", size, " en ", unit)
 	switch unit {
 	case "B":
 		sizeInBytes = size
@@ -166,7 +166,7 @@ func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typeP
 		return fmt.Errorf("Unidad invalida")
 	}
 
-	fmt.Println("El tamaño calculado de la partición es: ", sizeInBytes)
+	// fmt.Println("El tamaño calculado de la partición es: ", sizeInBytes)
 	// Comprbar si hay un slot disponible para la partición disponible y validar la unicidad del nombre
 	partitionIndex := -1
 	for i, partition := range mbr.Partitions {
@@ -183,7 +183,7 @@ func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typeP
 		return fmt.Errorf("No hay slots disponibles para la nueva partición")
 	}
 
-	fmt.Println("El indice de La partición es: ", partitionIndex)
+	// fmt.Println("El indice de La partición es: ", partitionIndex)
 
 	// Verifica si hay espacio suficiente para la nueva partición (asumiendo una asignación lineal para simplificar).
 	var totalUsedSpace int64 = 0
@@ -195,15 +195,15 @@ func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typeP
 		return err
 	}
 
-	fmt.Println("El valor de totalUsedSpace es: ", totalUsedSpace)
-	fmt.Println("El valor de sizeInBytes es: ", sizeInBytes)
-	fmt.Println("El valor de mbr.MbrTamano es: ", mbr.MbrTamano)
+	// fmt.Println("El valor de totalUsedSpace es: ", totalUsedSpace)
+	// fmt.Println("El valor de sizeInBytes es: ", sizeInBytes)
+	// fmt.Println("El valor de mbr.MbrTamano es: ", mbr.MbrTamano)
 
 	if (totalUsedSpace + sizeInBytes) > mbr.MbrTamano {
 		return fmt.Errorf("No hay suficiente espacio para la nueva partición")
 	}
 
-	fmt.Println("Espacio disponible: ", mbr.MbrTamano-totalUsedSpace)
+	// fmt.Println("Espacio disponible: ", mbr.MbrTamano-totalUsedSpace)
 
 	// Convertir typePart y fit a sus representaciones de byte correspondientes
 	var typeByte [1]byte
@@ -220,8 +220,8 @@ func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typeP
 		fitByte = 'F' // FF es el valor predeterminado
 	}
 
-	fmt.Println("El valor de typeByte es: ", typeByte[0])
-	fmt.Println("El valor de fitByte es: ", fitByte)
+	// fmt.Println("El valor de typeByte es: ", typeByte[0])
+	// fmt.Println("El valor de fitByte es: ", fitByte)
 
 	// Crear y "setear" la nueva partición
 	newPartition := Types.Partition{
@@ -233,21 +233,21 @@ func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typeP
 		Name:   partitionName,
 	}
 
-	fmt.Println("La nueva partición es: ", newPartition)
+	// fmt.Println("La nueva partición es: ", newPartition)
 
-	fmt.Println("Particion creada con exito")
-	fmt.Println(newPartition.Name)
-	fmt.Println("------------------------------------------------")
+	// fmt.Println("Particion creada con exito")
+	// fmt.Println(newPartition.Name)
+	// fmt.Println("------------------------------------------------")
 
 	copy(newPartition.Name[:], name)
 	mbr.Partitions[partitionIndex] = newPartition
 
-	printMBRState(mbr)
+	writeMBR(diskFileName, *mbr)
 
 	return nil
 }
 
-func AdjustAndCreatePartition(mbr *Types.MBR, size int64, unit, typePart, fit, name string) error {
+func AdjustAndCreatePartition(mbr *Types.MBR, size int64, unit, typePart, fit, name string, diskFileName string) error {
 	spaces := calculateAvailableSpaces(mbr)
 	var selectedSpace *Space
 
@@ -268,7 +268,7 @@ func AdjustAndCreatePartition(mbr *Types.MBR, size int64, unit, typePart, fit, n
 
 	// Aquí, usarías selectedSpace.Start como la posición de inicio de tu nueva partición
 	// y procederías a crear la partición con el tamaño especificado.
-	err := createPartition(mbr, selectedSpace.Start, size, unit, typePart, fit, name)
+	err := createPartition(mbr, selectedSpace.Start, size, unit, typePart, fit, name, diskFileName)
 	if err != nil {
 		return err
 	}
@@ -443,7 +443,8 @@ func GenerateDotCodeDisk(mbr *Types.MBR) string {
 	dot.WriteString("<td>MBR</td>\n") // MBR siempre está presente
 	for _, p := range mbr.Partitions {
 		if p.Status != 0 && p.Type != [1]byte{'L'} { // Revisar si la partición no es lógica y está activa
-			partitionName := string(p.Name[:]) // Convertir el nombre de la partición a string
+			partitionName := string(p.Name[:])                              // Convertir el nombre de la partición a string
+			partitionName = Utils.CleanPartitionName([]byte(partitionName)) // Convertir partitionName a []byte antes de pasarlo como argumento
 			dot.WriteString(fmt.Sprintf("<td>%s<br/>%d bytes</td>\n", partitionName, p.Size))
 		}
 	}
@@ -457,6 +458,7 @@ func GenerateDotCodeDisk(mbr *Types.MBR) string {
 			for _, subP := range mbr.Partitions {
 				if subP.Status != 0 && subP.Type == [1]byte{'L'} { // Revisar si la partición es lógica
 					partitionName := string(subP.Name[:]) // Convertir el nombre de la partición a string
+					partitionName = Utils.CleanPartitionName([]byte(partitionName))
 					dot.WriteString(fmt.Sprintf("<td>%s<br/>%d bytes</td>\n", partitionName, subP.Size))
 				}
 			}

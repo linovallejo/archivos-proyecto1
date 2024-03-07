@@ -88,9 +88,9 @@ func CreateDiskWithSize(filename string, size int64) {
 		return
 	}
 
-	fmt.Println("Disco creado correctamente con tamaño:", size, "bytes.")
+	// fmt.Println("Disco creado correctamente con tamaño:", size, "bytes.")
 
-	printMBRState(&mbr)
+	// printMBRState(&mbr)
 }
 
 func ConstructFileName(path string) string {

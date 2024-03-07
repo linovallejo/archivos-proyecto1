@@ -55,6 +55,19 @@ func main() {
 		} else if strings.HasPrefix(command, "fdisk") {
 			params := strings.Fields(command)
 			fdisk(params[1:])
+
+			mbr, err := Fdisk.ReadMBR(archivoBinarioDiscoActual)
+			if err != nil {
+				fmt.Println("Error leyendo el MBR:", err)
+				return
+			}
+			Utils.LineaDoble(60)
+			fmt.Println("mbr main:", mbr)
+			Utils.LineaDoble(60)
+			for i, p := range mbr.Partitions {
+				fmt.Printf("Partición %d: %+v\n", i+1, p)
+			}
+
 		} else if strings.HasPrefix(command, "rep") {
 			params := strings.Fields(command)
 			rep(archivoBinarioDiscoActual, params[1:])
@@ -132,24 +145,24 @@ func fdisk(params []string) {
 	}
 
 	// Validar el nombre de la partición
-	err = Fdisk.ValidatePartitionName(&mbr, name, delete)
+	err = Fdisk.ValidatePartitionName(mbr, name, delete)
 	if err != nil {
 		fmt.Println("Error al validar el nombre de la partición:", err)
 	}
 
 	// Parametro delete
 	if delete == "full" {
-		Fdisk.DeletePartition(&mbr, archivoBinarioDisco, name)
+		Fdisk.DeletePartition(mbr, archivoBinarioDisco, name)
 	}
 
 	// Parametro add
 	if addValue > 0 || addValue < 0 {
-		Fdisk.AdjustPartitionSize(&mbr, name, addValue, unit)
+		Fdisk.AdjustPartitionSize(mbr, name, addValue, unit)
 		return
 	}
 
 	// Validar la creación de la partición
-	err = Fdisk.ValidatePartitionTypeCreation(&mbr, typePart)
+	err = Fdisk.ValidatePartitionTypeCreation(mbr, typePart)
 	if err != nil {
 		fmt.Println("Error al validar la creación de la partición:", err)
 	}
@@ -162,37 +175,28 @@ func fdisk(params []string) {
 	// }
 
 	// Ajustar y crear la partición
-	err = Fdisk.AdjustAndCreatePartition(&mbr, size, unit, typePart, fit, name)
+	err = Fdisk.AdjustAndCreatePartition(mbr, size, unit, typePart, fit, name, archivoBinarioDiscoActual)
 	if err != nil {
 		fmt.Println("Error al ajustar y crear la partición:", err)
 	} else {
-		// Escribir el MBR actualizado con la nueva partición en el disco
-		// err = writeMBR(archivoBinarioDisco, mbr)
-		// if err != nil {
-		// 	fmt.Println("Error escribiendo el MBR actualizado:", err)
-		// } else {
-		// 	fmt.Println("Partición creada exitosamente.")
-		// }
-		fmt.Println("Partición creada exitosamente.")
-
+		fmt.Println("main.go - Partición creada exitosamente.")
 	}
-
-	// Crear la partición
-	// err = createPartition(&mbr, size, unit, letter, name)
-	// if err != nil {
-	// 	fmt.Println("Error creando la particion:", err)
-	// } else {
-	// 	// Escribir el MR actualizado con la nueva partición en el disco
-	// 	err = writeMBR(archivoBinarioDisco, mbr)
-	// 	if err != nil {
-	// 		fmt.Println("Error writing updated MBR:", err)
-	// 	} else {
-	// 		fmt.Println("Particion creada exitosamente.")
-	// 	}
-	// }
 }
 
 func rep(diskFileName string, params []string) {
+	// Leer el MBR existente
+	fmt.Println("diskFileName:", diskFileName)
+	mbr, err := Fdisk.ReadMBR(diskFileName)
+	if err != nil {
+		fmt.Println("Error leyendo el MBR:", err)
+		return
+	}
+	Utils.LineaDoble(60)
+	fmt.Println("mbr in rep:", mbr)
+	for i, p := range mbr.Partitions {
+		fmt.Printf("Partición %d: %+v\n", i+1, p)
+	}
+
 	reportName, reportPathAndFileName, err := Rep.ExtractRepParams(params)
 
 	if err != nil {
@@ -200,18 +204,18 @@ func rep(diskFileName string, params []string) {
 	}
 
 	// Leer el MBR existente
-	mbr, err := Fdisk.ReadMBR(diskFileName)
-	if err != nil {
-		fmt.Println("Error leyendo el MBR:", err)
-		return
-	}
+	// mbr, err := Fdisk.ReadMBR(diskFileName)
+	// if err != nil {
+	// 	fmt.Println("Error leyendo el MBR:", err)
+	// 	return
+	// }
 
 	var dotCode string
 	switch reportName {
 	case "mbr":
-		dotCode = Fdisk.GenerateDotCodeMbr(&mbr)
+		dotCode = Fdisk.GenerateDotCodeMbr(mbr)
 	case "disk":
-		dotCode = Fdisk.GenerateDotCodeDisk(&mbr)
+		dotCode = Fdisk.GenerateDotCodeDisk(mbr)
 	}
 
 	extension := filepath.Ext(reportPathAndFileName)
