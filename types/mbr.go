@@ -1,9 +1,9 @@
 package types
 
 type MBR struct {
-	MbrTamano        int64
+	MbrTamano        int32
 	MbrFechaCreacion [20]byte
-	MbrDiskSignature int64
-	DskFit           byte
+	MbrDiskSignature int32
+	DskFit           [1]byte
 	Partitions       [4]Partition
 }

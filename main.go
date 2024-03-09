@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	Fdisk "proyecto1/commands/fdisk"
 	Mkdisk "proyecto1/commands/mkdisk"
+	Mount "proyecto1/commands/mount"
 	Rep "proyecto1/commands/rep"
 	Rmdisk "proyecto1/commands/rmdisk"
 	Reportes "proyecto1/reportes"
@@ -50,10 +51,11 @@ func main() {
 	commands := strings.Split(contentStr, "\n")
 
 	for _, command := range commands {
-		if strings.HasPrefix(command, "mkdisk") {
+		switch {
+		case strings.HasPrefix(command, "mkdisk"):
 			params := strings.Fields(command)
 			archivoBinarioDiscoActual = mkdisk(params[1:])
-		} else if strings.HasPrefix(command, "fdisk") {
+		case strings.HasPrefix(command, "fdisk"):
 			params := strings.Fields(command)
 			fdisk(params[1:])
 
@@ -68,8 +70,16 @@ func main() {
 			for i, p := range mbr.Partitions {
 				fmt.Printf("Partición %d: %+v\n", i+1, p)
 			}
-
-		} else if strings.HasPrefix(command, "rep") {
+		case strings.HasPrefix(command, "rmdisk"):
+			params := strings.Fields(command)
+			rmdisk(params[1:])
+		case strings.HasPrefix(command, "mount"):
+			params := strings.Fields(command)
+			mount(params[1:])
+		case strings.HasPrefix(command, "unmount"):
+			params := strings.Fields(command)
+			unmount(params[1:])
+		case strings.HasPrefix(command, "rep"):
 			params := strings.Fields(command)
 			rep(archivoBinarioDiscoActual, params[1:])
 		}
@@ -115,7 +125,7 @@ func mkdisk(params []string) string {
 	ajusteParticionActual = diskFit
 
 	// Creación del disco con el tamaño calculado en bytes
-	Mkdisk.CreateDiskWithSize(filename, sizeInBytes)
+	Mkdisk.CreateDiskWithSize(filename, int32(sizeInBytes))
 
 	fmt.Println("Disco creado con éxito!")
 
@@ -176,7 +186,7 @@ func fdisk(params []string) {
 	// }
 
 	// Ajustar y crear la partición
-	err = Fdisk.AdjustAndCreatePartition(mbr, size, unit, typePart, fit, name, archivoBinarioDiscoActual)
+	err = Fdisk.AdjustAndCreatePartition(mbr, int32(size), unit, typePart, fit, name, archivoBinarioDiscoActual)
 	if err != nil {
 		fmt.Println("Error al ajustar y crear la partición:", err)
 	} else {
@@ -202,6 +212,43 @@ func rmdisk(params []string) {
 	if err != nil {
 		fmt.Println(err)
 	}
+}
+
+func mount(params []string) {
+	driveletter, name, err := Mount.ExtractMountParams(params)
+	if err != nil {
+		fmt.Println("Error al procesar los parámetros MOUNT:", err)
+	}
+	var result int
+
+	// Leer el MBR existente
+	filename := driveletter + ".dsk"
+	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	result, err = Mount.MountPartition(archivoBinarioDisco, driveletter, name)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if result == 0 {
+		fmt.Println("Partición montada exitosamente.")
+	} else {
+		fmt.Println("Error al montar la partición.")
+	}
+
+}
+
+func unmount(params []string) {
+	id, err := Mount.ExtractUnmountParams(params)
+	if err != nil {
+		fmt.Println("Error al procesar los parámetros UNMOUNT:", err)
+	}
+
+	Mount.UnmountPartition(id)
 }
 
 func rep(diskFileName string, params []string) {

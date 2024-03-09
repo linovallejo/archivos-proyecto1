@@ -56,7 +56,7 @@ func CalculateDiskSize(size int64, unit string) (int64, error) {
 	}
 }
 
-func CreateDiskWithSize(filename string, size int64) {
+func CreateDiskWithSize(filename string, size int32) {
 	var mbr Types.MBR
 	mbr.MbrTamano = size
 	currentTime := time.Now()
@@ -82,7 +82,7 @@ func CreateDiskWithSize(filename string, size int64) {
 		return
 	}
 
-	err = file.Truncate(size)
+	err = file.Truncate(int64(size))
 	if err != nil {
 		fmt.Printf("Error al asignar espacio en disco: %v\n", err)
 		return
@@ -114,9 +114,9 @@ func printMBRState(mbr *Types.MBR) {
 	}
 }
 
-func generateDiskSignature() (signature int64) {
+func generateDiskSignature() (signature int32) {
 	source := rand.NewSource(time.Now().UnixNano())
 	generator := rand.New(source)
-	signature = generator.Int63()
+	signature = generator.Int31()
 	return
 }

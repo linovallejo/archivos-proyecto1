@@ -1,12 +1,12 @@
 package types
 
 type Partition struct {
-	Status          byte
-	Type            [1]byte
-	Fit             byte
-	Start           int64
-	Size            int64
-	Name            [16]byte
-	PartCorrelative int64
-	PartId          [4]byte
+	Status      [1]byte
+	Type        [1]byte
+	Fit         [1]byte
+	Start       int32
+	Size        int32
+	Name        [16]byte
+	Correlative int32
+	Id          [4]byte
 }

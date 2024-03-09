@@ -131,10 +131,10 @@ func writeMBR(filename string, mbr Types.MBR) error {
 	return err
 }
 
-func calculateTotalUsedSpace(mbr Types.MBR) (int64, error) {
-	var totalUsedSpace int64 = 0
+func calculateTotalUsedSpace(mbr Types.MBR) (int32, error) {
+	var totalUsedSpace int32 = 0
 	for _, partition := range mbr.Partitions {
-		if partition.Status != 0 {
+		if partition.Status != [1]byte{0} {
 			if partition.Size < 0 {
 				return 0, fmt.Errorf("tamano de partición invalido: %d", partition.Size)
 			}
@@ -149,11 +149,11 @@ func calculateTotalUsedSpace(mbr Types.MBR) (int64, error) {
 	return totalUsedSpace, nil
 }
 
-func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typePart, fit, name string, diskFileName string) error {
+func createPartition(mbr *Types.MBR, start int64, size int32, unit string, typePart, fit, name string, diskFileName string) error {
 	var partitionName [16]byte
 	copy(partitionName[:], name)
 
-	var sizeInBytes int64 = 0
+	var sizeInBytes int32 = 0
 	// fmt.Println("El tamaño de la partición es: ", size, " en ", unit)
 	switch unit {
 	case "B":
@@ -170,7 +170,7 @@ func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typeP
 	// Comprbar si hay un slot disponible para la partición disponible y validar la unicidad del nombre
 	partitionIndex := -1
 	for i, partition := range mbr.Partitions {
-		if partition.Status == 0 { // Asume que 0 indica un slot disponible
+		if partition.Status == [1]byte{0} { // Asume que 0 indica un slot disponible
 			if partitionIndex == -1 {
 				partitionIndex = i
 			}
@@ -186,7 +186,7 @@ func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typeP
 	// fmt.Println("El indice de La partición es: ", partitionIndex)
 
 	// Verifica si hay espacio suficiente para la nueva partición (asumiendo una asignación lineal para simplificar).
-	var totalUsedSpace int64 = 0
+	var totalUsedSpace int32 = 0
 	var err error
 
 	totalUsedSpace, err = calculateTotalUsedSpace(*mbr)
@@ -225,10 +225,10 @@ func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typeP
 
 	// Crear y "setear" la nueva partición
 	newPartition := Types.Partition{
-		Status: 1,
+		Status: [1]byte{1},
 		Type:   typeByte,
-		Fit:    fitByte,
-		Start:  start,
+		Fit:    [1]byte{fitByte},
+		Start:  int32(start),
 		Size:   sizeInBytes,
 		Name:   partitionName,
 	}
@@ -247,7 +247,7 @@ func createPartition(mbr *Types.MBR, start int64, size int64, unit string, typeP
 	return nil
 }
 
-func AdjustAndCreatePartition(mbr *Types.MBR, size int64, unit, typePart, fit, name string, diskFileName string) error {
+func AdjustAndCreatePartition(mbr *Types.MBR, size int32, unit, typePart, fit, name string, diskFileName string) error {
 	spaces := calculateAvailableSpaces(mbr)
 	var selectedSpace *Space
 
@@ -278,13 +278,13 @@ func AdjustAndCreatePartition(mbr *Types.MBR, size int64, unit, typePart, fit, n
 
 func calculateAvailableSpaces(mbr *Types.MBR) []Space {
 	var spaces []Space
-	var lastPosition int64 = 1 // Asume que el disco comienza en la posición 1
+	var lastPosition int32 = 1 // Asume que el disco comienza en la posición 1
 
 	for _, partition := range mbr.Partitions {
-		if partition.Status != 0 { // Asume que Status != 0 significa partición ocupada
+		if partition.Status[0] != 0 { // Asume que Status != 0 significa partición ocupada
 			if lastPosition < partition.Start {
 				// Hay espacio libre entre la última posición y el inicio de la partición actual
-				spaces = append(spaces, Space{Start: lastPosition, Size: partition.Start - lastPosition})
+				spaces = append(spaces, Space{Start: int64(lastPosition), Size: int64(partition.Start) - int64(lastPosition)})
 			}
 			lastPosition = partition.Start + partition.Size
 		}
@@ -292,35 +292,35 @@ func calculateAvailableSpaces(mbr *Types.MBR) []Space {
 
 	// Considera el espacio hasta el final del disco
 	if lastPosition < mbr.MbrTamano {
-		spaces = append(spaces, Space{Start: lastPosition, Size: mbr.MbrTamano - lastPosition})
+		spaces = append(spaces, Space{Start: int64(lastPosition), Size: int64(mbr.MbrTamano) - int64(lastPosition)})
 	}
 
 	return spaces
 }
 
-func findFirstFit(spaces []Space, size int64) *Space {
+func findFirstFit(spaces []Space, size int32) *Space {
 	for _, space := range spaces {
-		if space.Size >= size {
+		if space.Size >= int64(size) {
 			return &space
 		}
 	}
 	return nil
 }
 
-func findBestFit(spaces []Space, size int64) *Space {
+func findBestFit(spaces []Space, size int32) *Space {
 	var bestSpace *Space
 	for _, space := range spaces {
-		if space.Size >= size && (bestSpace == nil || space.Size < bestSpace.Size) {
+		if space.Size >= int64(size) && (bestSpace == nil || space.Size < bestSpace.Size) {
 			bestSpace = &space
 		}
 	}
 	return bestSpace
 }
 
-func findWorstFit(spaces []Space, size int64) *Space {
+func findWorstFit(spaces []Space, size int32) *Space {
 	var worstSpace *Space
 	for _, space := range spaces {
-		if space.Size >= size && (worstSpace == nil || space.Size > worstSpace.Size) {
+		if space.Size >= int64(size) && (worstSpace == nil || space.Size > worstSpace.Size) {
 			worstSpace = &space
 		}
 	}
@@ -382,7 +382,7 @@ func GenerateDotCodeMbr(mbr *Types.MBR) string {
 
 	// Nodos de particiones
 	for i, partition := range mbr.Partitions {
-		if partition.Status != 0 { // Asumiendo que Status != 0 significa que la partición esta disponible.
+		if partition.Status != [1]byte{0} { // Asumiendo que Status != 0 significa que la partición esta disponible.
 			partitionName := Utils.CleanPartitionName(partition.Name[:])
 			if partitionName == "" {
 				partitionName = fmt.Sprintf("Partition%d", i+1)
@@ -412,7 +412,7 @@ func GenerateDotCodeDisk(mbr *Types.MBR) string {
 	dot.WriteString("<tr>\n")
 	dot.WriteString("<td>MBR</td>\n") // MBR siempre está presente
 	for _, p := range mbr.Partitions {
-		if p.Status != 0 && p.Type != [1]byte{'L'} { // Revisar si la partición no es lógica y está activa
+		if p.Status != [1]byte{0} && p.Type != [1]byte{'L'} { // Revisar si la partición no es lógica y está activa
 			partitionName := string(p.Name[:])                              // Convertir el nombre de la partición a string
 			partitionName = Utils.CleanPartitionName([]byte(partitionName)) // Convertir partitionName a []byte antes de pasarlo como argumento
 			dot.WriteString(fmt.Sprintf("<td>%s<br/>%d bytes</td>\n", partitionName, p.Size))
@@ -422,11 +422,11 @@ func GenerateDotCodeDisk(mbr *Types.MBR) string {
 
 	// Segunda fila para particiones lógicas si existe una extendida
 	for _, p := range mbr.Partitions {
-		if p.Status != 0 && p.Type == [1]byte{'E'} { // Si hay una extendida, asumimos que hay lógicas
+		if p.Status != [1]byte{0} && p.Type == [1]byte{'E'} { // Si hay una extendida, asumimos que hay lógicas
 			dot.WriteString("<tr>\n")
 			dot.WriteString("<td colspan=\"3\">Extendida</td>\n") // Colspan basado en la cantidad de lógicas
 			for _, subP := range mbr.Partitions {
-				if subP.Status != 0 && subP.Type == [1]byte{'L'} { // Revisar si la partición es lógica
+				if subP.Status != [1]byte{0} && subP.Type == [1]byte{'L'} { // Revisar si la partición es lógica
 					partitionName := string(subP.Name[:]) // Convertir el nombre de la partición a string
 					partitionName = Utils.CleanPartitionName([]byte(partitionName))
 					dot.WriteString(fmt.Sprintf("<td>%s<br/>%d bytes</td>\n", partitionName, subP.Size))
@@ -515,7 +515,7 @@ func DeletePartition(mbr *Types.MBR, filename string, partitionName string) erro
 		fmt.Printf("La partición '%s' comienza en %d bytes y tiene un tamaño de %d bytes.\n", partitionName, start, size)
 	}
 
-	err = cleanPartitionSpace(filename, start, size)
+	err = cleanPartitionSpace(filename, int64(start), int64(size))
 	if err != nil {
 		fmt.Printf("Error al limpiar el espacio de la partición: %v\n", err)
 	} else {
@@ -549,7 +549,7 @@ func cleanPartitionSpace(filename string, startPosition int64, size int64) error
 	return nil
 }
 
-func getPartitionDetails(mbr *Types.MBR, partitionName string) (int64, int64, error) {
+func getPartitionDetails(mbr *Types.MBR, partitionName string) (int32, int32, error) {
 	for _, partition := range mbr.Partitions {
 		if string(partition.Name[:]) == partitionName {
 			return partition.Start, partition.Size, nil
@@ -562,7 +562,7 @@ func canAdjustPartitionSize(mbr *Types.MBR, partitionIndex int, sizeInBytes int6
 	currentPartition := mbr.Partitions[partitionIndex]
 
 	// Verificar si se reduce el tamaño y se mantiene positivo
-	if sizeInBytes < 0 && (currentPartition.Size+sizeInBytes) < 0 {
+	if sizeInBytes < 0 && (int64(currentPartition.Size)+sizeInBytes) < 0 {
 		return false // No se puede reducir la partición a tamaño negativo
 	}
 
@@ -571,13 +571,13 @@ func canAdjustPartitionSize(mbr *Types.MBR, partitionIndex int, sizeInBytes int6
 		// Calcula el espacio total utilizado por todas las particiones
 		var totalUsedSpace int64 = 0
 		for _, partition := range mbr.Partitions {
-			if partition.Status != 0 { // Asume Status != 0 como partición activa
-				totalUsedSpace += partition.Size
+			if partition.Status != [1]byte{0} { // Asume Status != 0 como partición activa
+				totalUsedSpace += int64(partition.Size) // Convert partition.Size to int64 before adding
 			}
 		}
 
 		// Espacio disponible en el disco
-		spaceAvailable := mbr.MbrTamano - totalUsedSpace
+		spaceAvailable := int64(mbr.MbrTamano) - totalUsedSpace
 
 		// Verificar si el espacio disponible es suficiente para la expansión
 		if sizeInBytes > spaceAvailable {
@@ -627,7 +627,7 @@ func AdjustPartitionSize(mbr *Types.MBR, partitionName string, addValue int64, u
 	}
 
 	// Ajusta el tamaño de la partición
-	mbr.Partitions[partitionIndex].Size += sizeInBytes
+	mbr.Partitions[partitionIndex].Size += int32(sizeInBytes)
 
 	// Opcional: Rellenar con '\0' si se reduce el tamaño y se especifica "Full"
 

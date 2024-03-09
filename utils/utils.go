@@ -2,11 +2,42 @@ package Utils
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 )
+
+func AbrirArchivo(name string) (*os.File, error) {
+	file, err := os.OpenFile(name, os.O_RDWR, 0644)
+	if err != nil {
+		fmt.Println("Err OpenFile==", err)
+		return nil, err
+	}
+	return file, nil
+}
+
+func WriteObject(file *os.File, data interface{}, position int64) error {
+	file.Seek(position, 0)
+	err := binary.Write(file, binary.LittleEndian, data)
+	if err != nil {
+		fmt.Println("Err WriteObject==", err)
+		return err
+	}
+	return nil
+}
+
+// Function to Read an object from a bin file
+func ReadObject(file *os.File, data interface{}, position int64) error {
+	file.Seek(position, 0)
+	err := binary.Read(file, binary.LittleEndian, data)
+	if err != nil {
+		fmt.Println("Err ReadObject==", err)
+		return err
+	}
+	return nil
+}
 
 func LimpiarConsola() {
 	fmt.Print("\033[H\033[2J")
