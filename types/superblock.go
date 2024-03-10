@@ -1,23 +1,21 @@
 package types
 
-import "time"
-
 type SuperBlock struct {
-	s_filesystem_type   int
-	s_inodes_count      int
-	s_blocks_count      int
-	s_free_blocks_count int
-	s_free_inodes_count int
-	s_mtime             time.Time
-	s_umtime            time.Time
-	s_mnt_count         int
-	s_magic             int
-	s_inode_size        int
-	s_block_size        int
-	s_first_ino         int
-	s_first_blo         int
-	s_bm_inode_start    int
-	s_bm_block_start    int
-	s_inode_start       int
-	s_block_start       int
+	S_filesystem_type   int32
+	S_inodes_count      int32
+	S_blocks_count      int32
+	S_free_blocks_count int32
+	S_free_inodes_count int32
+	S_mtime             [17]byte
+	S_umtime            [17]byte
+	S_mnt_count         int32
+	S_magic             int32
+	S_inode_size        int32
+	S_block_size        int32
+	S_first_ino         int32
+	S_first_blo         int32
+	S_bm_inode_start    int32
+	S_bm_block_start    int32
+	S_inode_start       int32
+	S_block_start       int32
 }

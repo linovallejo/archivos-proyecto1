@@ -1,5 +1,5 @@
 package types
 
 type FileBlock struct {
-	b_content [64]FileBlockContent
+	B_content [64]FileBlockContent
 }

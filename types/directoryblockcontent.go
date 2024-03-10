@@ -1,6 +1,6 @@
 package types
 
 type DirectoryBlockContent struct {
-	b_name  [12]byte
-	b_inode int
+	B_name  [12]byte
+	B_inodo int32
 }
