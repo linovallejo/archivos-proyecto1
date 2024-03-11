@@ -34,6 +34,7 @@ func ExtractFdiskParams(params []string) (int64, string, string, string, string,
 	driveletterOk := false
 	nameOk := false
 	addOk := false
+	deleteOk := false
 	for _, param1 := range params {
 		if strings.HasPrefix(param1, "-size=") {
 			sizeOk = true
@@ -43,10 +44,12 @@ func ExtractFdiskParams(params []string) (int64, string, string, string, string,
 			nameOk = true
 		} else if strings.HasPrefix(param1, "-add=") {
 			addOk = true
+		} else if strings.HasPrefix(param1, "-delete=") {
+			deleteOk = true
 		}
 	}
 
-	if !sizeOk && addOk {
+	if !sizeOk && (addOk || deleteOk) {
 		sizeOk = true
 	}
 
@@ -108,7 +111,7 @@ func ExtractFdiskParams(params []string) (int64, string, string, string, string,
 				return 0, "", "", "", "", "", "", 0, fmt.Errorf("Parametro fit invalido")
 			}
 		case strings.HasPrefix(param, "-delete="):
-			delete = strings.TrimPrefix(param, "-delete")
+			delete = strings.TrimPrefix(param, "-delete=")
 			// Validar el parametro delete
 			if delete != "fast" && delete != "full" {
 				return 0, "", "", "", "", "", "", 0, fmt.Errorf("Parametro delete invalido")
@@ -127,7 +130,7 @@ func ExtractFdiskParams(params []string) (int64, string, string, string, string,
 		}
 	}
 
-	if (size == 0 && !addOk) || driveletter == "" || name == "" {
+	if (size == 0 && !addOk && !deleteOk) || driveletter == "" || name == "" {
 		return 0, "", "", "", "", "", "", 0, fmt.Errorf("Parametro obligatorio faltante")
 	}
 
@@ -451,8 +454,16 @@ func GenerateDotCodeDisk(mbr *Types.MBR) string {
 
 func ValidatePartitionName(mbr *Types.MBR, name string, delete string) error {
 	partitionExists := false
+
+	fmt.Println("Validando nombre de la partición:", name)
+	fmt.Println("Delete:", delete)
+
+	var partitionName string = ""
 	for _, partition := range mbr.Partitions {
-		if string(partition.Name[:]) == name {
+		partitionName = Utils.CleanPartitionName(partition.Name[:])
+		//fmt.Println("Particion:", string(partition.Name[:]))
+		if strings.TrimSpace(partitionName) == strings.TrimSpace(name) {
+			//fmt.Println("Particion encontrada:", string(partition.Name[:]))
 			partitionExists = true
 			break
 		}
@@ -460,11 +471,11 @@ func ValidatePartitionName(mbr *Types.MBR, name string, delete string) error {
 
 	if delete == "full" {
 		if !partitionExists {
-			return fmt.Errorf("la partición a eliminar '%s' no existe", name)
+			return fmt.Errorf("la partición a eliminar %s no existe", name)
 		}
 	} else {
 		if partitionExists {
-			return fmt.Errorf("el nombre de la partición '%s' ya está en uso", name)
+			return fmt.Errorf("el nombre de la partición %s ya está en uso", name)
 		}
 	}
 
@@ -482,44 +493,52 @@ func CalculateSize(size int64, unit string) (int64, error) {
 	}
 }
 
-func DeletePartition(mbr *Types.MBR, filename string, partitionName string) error {
+func DeletePartition(mbr *Types.MBR, filename string, name string) error {
 	// Verificar la existencia de la partición
 	partitionIndex := -1
-	for i, p := range mbr.Partitions {
-		if string(p.Name[:]) == partitionName {
+	var partitionName string = ""
+	for i, partition := range mbr.Partitions {
+		partitionName = Utils.CleanPartitionName(partition.Name[:])
+
+		if strings.TrimSpace(partitionName) == strings.TrimSpace(name) {
 			partitionIndex = i
 			break
 		}
 	}
 	if partitionIndex == -1 {
-		return fmt.Errorf("la partición '%s' no existe", partitionName)
+		return fmt.Errorf("la partición '%s' no existe", name)
 	}
 
 	// Confirmar la eliminación de la partición
-	fmt.Printf("¿Estás seguro de que quieres eliminar la partición '%s'? [s/N]: ", partitionName)
+	fmt.Printf("¿Estás seguro de que quieres eliminar la partición '%s'? [s/N]: ", name)
 	var response string
 	fmt.Scanln(&response)
 	if response != "s" && response != "S" {
 		return fmt.Errorf("eliminación cancelada por el usuario")
 	}
 
-	// Eliminar la partición
-	// Si la partición es extendida, también elimina sus particiones lógicas
-	if string(mbr.Partitions[partitionIndex].Type[:]) == "E" {
-		// TODO
-		// Implementar lógica para eliminar particiones lógicas si es necesario
-		return nil
-	}
-	mbr.Partitions[partitionIndex] = Types.Partition{} // Asigna una partición vacía
-
+	fmt.Println("getPartitionDetails")
 	// Rellenar con `\0`
-	start, size, err := getPartitionDetails(mbr, partitionName)
+	start, size, err := getPartitionDetails(mbr, name)
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Printf("La partición '%s' comienza en %d bytes y tiene un tamaño de %d bytes.\n", partitionName, start, size)
+		fmt.Printf("La partición '%s' comienza en %d bytes y tiene un tamaño de %d bytes.\n", name, start, size)
 	}
 
+	// TODO
+	// Eliminar la partición
+	// Si la partición es extendida, también elimina sus particiones lógicas
+	// if string(mbr.Partitions[partitionIndex].Type[:]) == "E" {
+	// 	// TODO
+	// 	// Implementar lógica para eliminar particiones lógicas si es necesario
+	// 	return nil
+	// }
+
+	mbr.Partitions[partitionIndex] = Types.Partition{} // Asigna una partición vacía
+	WriteMBR(filename, *mbr)
+
+	fmt.Println("cleanPartitionSpace")
 	err = cleanPartitionSpace(filename, int64(start), int64(size))
 	if err != nil {
 		fmt.Printf("Error al limpiar el espacio de la partición: %v\n", err)
@@ -554,13 +573,15 @@ func cleanPartitionSpace(filename string, startPosition int64, size int64) error
 	return nil
 }
 
-func getPartitionDetails(mbr *Types.MBR, partitionName string) (int32, int32, error) {
+func getPartitionDetails(mbr *Types.MBR, name string) (int32, int32, error) {
+	var partitionName string = ""
 	for _, partition := range mbr.Partitions {
-		if string(partition.Name[:]) == partitionName {
+		partitionName = Utils.CleanPartitionName(partition.Name[:])
+		if strings.TrimSpace(partitionName) == strings.TrimSpace(name) {
 			return partition.Start, partition.Size, nil
 		}
 	}
-	return 0, 0, fmt.Errorf("la partición '%s' no se encontró", partitionName)
+	return 0, 0, fmt.Errorf("la partición '%s' no se encontró", name)
 }
 
 func canAdjustPartitionSize(mbr *Types.MBR, partitionIndex int, sizeInBytes int64) bool {

@@ -232,7 +232,13 @@ func fdisk(params []string) {
 
 	// Parametro delete
 	if delete == "full" {
-		Fdisk.DeletePartition(mbr, archivoBinarioDisco, name)
+		err = Fdisk.DeletePartition(mbr, archivoBinarioDisco, name)
+		if err != nil {
+			fmt.Println("Error al eliminar la partición:", err)
+		} else {
+			fmt.Println("Partición eliminada exitosamente.")
+		}
+		return
 	}
 
 	// Parametro add
@@ -251,13 +257,6 @@ func fdisk(params []string) {
 		fmt.Println("Error al validar la creación de la partición:", err)
 		return
 	}
-
-	// Tamaño de la partición en bytes
-	// sizeInBytes, err := Fdisk.CalculateSize(size, unit)
-	// if err != nil {
-	// 	fmt.Println("Error:", err)
-	// 	return
-	// }
 
 	// Ajustar y crear la partición
 	err = Fdisk.AdjustAndCreatePartition(mbr, int32(size), unit, typePart, fit, name, archivoBinarioDiscoActual)
