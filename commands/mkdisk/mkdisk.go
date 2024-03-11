@@ -18,10 +18,29 @@ func ExtractMkdiskParams(params []string) (int64, string, string, error) {
 	var unit string = "M" // Megabytes por defecto
 	var fit string = "FF" // First Fit por defecto
 
+	if len(params) == 0 {
+		return 0, "", "", fmt.Errorf("No se encontraron parámetros")
+	}
+
+	var parametrosObligatoriosOk bool = false
+	for _, param1 := range params {
+		if strings.HasPrefix(param1, "-size=") {
+			parametrosObligatoriosOk = true
+			break
+		}
+	}
+
+	if !parametrosObligatoriosOk {
+		return 0, "", "", fmt.Errorf("No se encontraron parámetros obligatorios")
+	}
+
 	for _, param := range params {
 		if strings.HasPrefix(param, "-size=") {
 			sizeStr := strings.TrimPrefix(param, "-size=")
 			var err error
+			if strings.TrimSpace(sizeStr) == "" {
+				return 0, "", "", fmt.Errorf("Parametro tamaño es obligatorio")
+			}
 			size, err = strconv.ParseInt(sizeStr, 10, 64)
 			if err != nil || size <= 0 {
 				return 0, "", "", fmt.Errorf("Parametro tamaño invalido")

@@ -52,6 +52,10 @@ func main() {
 	commands := strings.Split(contentStr, "\n")
 
 	for _, command := range commands {
+		command = strings.TrimSpace(command)
+		if command == "" || strings.HasPrefix(command, "#") {
+			continue
+		}
 		switch {
 		case strings.HasPrefix(command, "mkdisk"):
 			params := strings.Fields(command)
@@ -89,6 +93,14 @@ func main() {
 			}
 			Utils.PrintMBRv3(TempMBR3)
 		case strings.HasPrefix(command, "rmdisk"):
+			// fmt.Println("¿Está seguro de que desea eliminar el disco? [s/N]:")
+			// var response string
+			// _, err := fmt.Scanln(&response)
+			// if err != nil || (response != "s" && response != "S") {
+			// 	fmt.Println("Operación cancelada.")
+			// 	return
+			// }
+
 			params := strings.Fields(command)
 			rmdisk(params[1:])
 		case strings.HasPrefix(command, "mount"):
@@ -119,8 +131,12 @@ func main() {
 		case strings.HasPrefix(command, "rep"):
 			params := strings.Fields(command)
 			rep(archivoBinarioDiscoActual, params[1:])
+		case strings.HasPrefix(command, "pause"):
+			fmt.Println("Presione cualquier tecla para continuar...")
+			fmt.Scanln()
 		}
 	}
+	//Rmdisk.RemoveDisk(archivoBinarioDiscoActual)
 }
 
 func parseCommand(input string) (string, string) {

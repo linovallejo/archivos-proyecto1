@@ -1,4 +1,10 @@
-mkdisk -size=20 -unit=M -fit=BF
-fdisk -size=5 -unit=M -driveletter=A -name=Particion1 -type=P -fit=BF
-rep -name=disk -path=.\reportes\disk.pdf
+mkdisk -size=500 -unit=K -fit=BF
+fdisk -size=5 -unit=M  -driveletter=A -name=Particion1 -type=P -fit=BF
+#El rep aun no funcniona
+#rep -name=disk -path=.\reportes\disk.pdf
+
 mount -driveletter=A -name=Particion1
+
+pause
+
+rmdisk -driveletter=A

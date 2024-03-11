@@ -99,16 +99,47 @@ func ExtractMountParams(params []string) (string, string, error) {
 	var driveletter string = ""
 	var name string = ""
 
+	if len(params) == 0 {
+		return "", "", fmt.Errorf("No se encontraron parámetros")
+	}
+	var parametrosObligatoriosOk bool = false
+	sizeOk := false
+	driveletterOk := false
+	nameOk := false
+	for _, param1 := range params {
+		if strings.HasPrefix(param1, "-size=") {
+			sizeOk = true
+		} else if strings.HasPrefix(param1, "-driveletter=") {
+			driveletterOk = true
+		} else if strings.HasPrefix(param1, "-name=") {
+			nameOk = true
+		}
+	}
+
+	if sizeOk && driveletterOk && nameOk {
+		parametrosObligatoriosOk = true
+	}
+
+	if !parametrosObligatoriosOk {
+		return "", "", fmt.Errorf("No se encontraron parámetros obligatorios")
+	}
+
 	for _, param := range params {
 		switch {
 		case strings.HasPrefix(param, "-driveletter="):
 			driveletter = strings.TrimPrefix(param, "-driveletter=")
 			// Validar la letra de la partición
-			if len(driveletter) != 1 || !unicode.IsLetter(rune(driveletter[0])) {
+			if strings.TrimSpace(driveletter) == "" {
+				return "", "", fmt.Errorf("La letra del drive es un parametro obligatorio")
+			} else if len(driveletter) != 1 || !unicode.IsLetter(rune(driveletter[0])) {
 				return "", "", fmt.Errorf("La letra de la partición debe ser un único carácter alfabérico")
 			}
 		case strings.HasPrefix(param, "-name="):
 			name = strings.TrimPrefix(param, "-name=")
+			if strings.TrimSpace(name) == "" {
+				return "", "", fmt.Errorf("Parametro name es obligatorio")
+			}
+
 			// Validar el nombre de la partición
 			if len(name) > 16 {
 				return "", "", fmt.Errorf("El nombre de la partición no puede exceder los 16 caracteres")

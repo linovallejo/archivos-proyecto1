@@ -24,10 +24,40 @@ func ExtractFdiskParams(params []string) (int64, string, string, string, string,
 	var driveletter, name, unit, parttype, fit, delete, add string
 	var addValue int64 = 0
 
+	if len(params) == 0 {
+		return 0, "", "", "", "", "", "", 0, fmt.Errorf("No se encontraron parámetros")
+	}
+
+	var parametrosObligatoriosOk bool = false
+	sizeOk := false
+	driveletterOk := false
+	nameOk := false
+	for _, param1 := range params {
+		if strings.HasPrefix(param1, "-size=") {
+			sizeOk = true
+		} else if strings.HasPrefix(param1, "-driveletter=") {
+			driveletterOk = true
+		} else if strings.HasPrefix(param1, "-name=") {
+			nameOk = true
+		}
+	}
+
+	if sizeOk && driveletterOk && nameOk {
+		parametrosObligatoriosOk = true
+	}
+
+	if !parametrosObligatoriosOk {
+		return 0, "", "", "", "", "", "", 0, fmt.Errorf("No se encontraron parámetros obligatorios")
+	}
+
 	for _, param := range params {
 		switch {
 		case strings.HasPrefix(param, "-size="):
 			sizeStr := strings.TrimPrefix(param, "-size=")
+			if strings.TrimSpace(sizeStr) == "" {
+				return 0, "", "", "", "", "", "", 0, fmt.Errorf("Parametro tamaño es obligatorio")
+			}
+
 			var err error
 			size, err = strconv.ParseInt(sizeStr, 10, 64)
 			if err != nil || size <= 0 {
@@ -35,12 +65,18 @@ func ExtractFdiskParams(params []string) (int64, string, string, string, string,
 			}
 		case strings.HasPrefix(param, "-driveletter="):
 			driveletter = strings.TrimPrefix(param, "-driveletter=")
+			if strings.TrimSpace(driveletter) == "" {
+				return 0, "", "", "", "", "", "", 0, fmt.Errorf("Parametro driveletter es obligatorio")
+			}
 			// Validar la letra de la partición
 			if len(driveletter) != 1 || !unicode.IsLetter(rune(driveletter[0])) {
 				return 0, "", "", "", "", "", "", 0, fmt.Errorf("La letra de la partición debe ser un único carácter alfabérico")
 			}
 		case strings.HasPrefix(param, "-name="):
 			name = strings.TrimPrefix(param, "-name=")
+			if strings.TrimSpace(name) == "" {
+				return 0, "", "", "", "", "", "", 0, fmt.Errorf("Parametro name es obligatorio")
+			}
 			// Validar el nombre de la partición
 			if len(name) > 16 {
 				return 0, "", "", "", "", "", "", 0, fmt.Errorf("El nombre de la partición no puede exceder los 16 caracteres")
