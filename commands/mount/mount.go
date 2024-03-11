@@ -2,6 +2,7 @@ package Mount
 
 import (
 	"fmt"
+	Fdisk "proyecto1/commands/fdisk"
 	Types "proyecto1/types"
 	Utilities "proyecto1/utils"
 	"strconv"
@@ -9,7 +10,7 @@ import (
 	"unicode"
 )
 
-func MountPartition(diskFileName string, driveletter string, name string) (int, error) {
+func MountPartition(mbr *Types.MBR, diskFileName string, driveletter string, name string) (int, error) {
 	fmt.Println("======Start MOUNT======")
 	fmt.Println("Driveletter:", driveletter)
 	fmt.Println("Name:", name)
@@ -20,14 +21,14 @@ func MountPartition(diskFileName string, driveletter string, name string) (int, 
 		return -1, err
 	}
 
-	var TempMBR Types.MBR
-	// Read object from bin file
-	if err := Utilities.ReadObject(file, &TempMBR, 0); err != nil {
-		return -1, err
-	}
+	// var TempMBR Types.MBR
+	// // Read object from bin file
+	// if err := Utilities.ReadObject(file, &TempMBR, 0); err != nil {
+	// 	return -1, err
+	// }
 
-	// Print object
-	PrintMBR(TempMBR)
+	// // Print object
+	// PrintMBR(TempMBR)
 
 	fmt.Println("-------------")
 
@@ -35,9 +36,9 @@ func MountPartition(diskFileName string, driveletter string, name string) (int, 
 	var count = 0
 	// Iterate over the partitions
 	for i := 0; i < 4; i++ {
-		if TempMBR.Partitions[i].Size != 0 {
+		if mbr.Partitions[i].Size != 0 {
 			count++
-			if strings.Contains(string(TempMBR.Partitions[i].Name[:]), name) {
+			if strings.Contains(string(mbr.Partitions[i].Name[:]), name) {
 				index = i
 				break
 			}
@@ -46,7 +47,8 @@ func MountPartition(diskFileName string, driveletter string, name string) (int, 
 
 	if index != -1 {
 		fmt.Println("Partition found")
-		PrintPartition(TempMBR.Partitions[index])
+		//Utils.PrintPartition(&TempMBR.Partitions[index])
+		//Utils.PrintMBRv2(mbr)
 	} else {
 		fmt.Println("Partition not found")
 		return -1, nil
@@ -54,15 +56,16 @@ func MountPartition(diskFileName string, driveletter string, name string) (int, 
 
 	// id = DriveLetter + Correlative + 19
 
-	id := strings.ToUpper(driveletter) + strconv.Itoa(count) + "19"
+	id := strings.ToUpper(driveletter) + strconv.Itoa(count) + "23"
 
-	copy(TempMBR.Partitions[index].Status[:], "1")
-	copy(TempMBR.Partitions[index].Id[:], id)
+	copy(mbr.Partitions[index].Status[:], "1")
+	copy(mbr.Partitions[index].Id[:], id)
 
 	// Overwrite the MBR
-	if err := Utilities.WriteObject(file, TempMBR, 0); err != nil {
-		return -1, err
-	}
+	// if err := Utilities.WriteObject(file, mbr, 0); err != nil {
+	// 	return -1, err
+	// }
+	Fdisk.WriteMBR(diskFileName, *mbr)
 
 	var TempMBR2 Types.MBR
 	// Read object from bin file

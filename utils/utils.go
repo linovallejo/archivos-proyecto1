@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	Types "proyecto1/types"
+	"strconv"
 	"strings"
+	"time"
 )
 
 func AbrirArchivo(name string) (*os.File, error) {
@@ -68,4 +71,67 @@ func EnsurePathExists(path string) error {
 		return os.MkdirAll(dir, os.ModePerm)
 	}
 	return nil
+}
+
+func PrintMBRv2(mbr Types.MBR) {
+	LineaDoble(80)
+	fmt.Println("*** MBR ***")
+	fmt.Printf("MBR Size: %d\n", mbr.MbrTamano)
+	creationDate, _ := strconv.ParseInt(string(mbr.MbrFechaCreacion[:]), 10, 64)
+	fmt.Printf("MBR Creation Date: %s\n", time.Unix(creationDate, 0).Format("2006-01-02 15:04:05"))
+	fmt.Printf("MBR Disk Signature: %d\n", mbr.MbrDiskSignature)
+	fmt.Printf("Disk Fit: %c\n", mbr.DskFit[0])
+
+	fmt.Println("\n*** Partitions ***")
+	for i, part := range mbr.Partitions {
+		fmt.Printf("\nPartition %d:\n", i+1)
+		fmt.Printf("  Status: %c\n", part.Status[0])
+		fmt.Printf("  Type: %c\n", part.Type[0])
+		fmt.Printf("  Fit: %c\n", part.Fit[0])
+		fmt.Printf("  Start: %d\n", part.Start)
+		fmt.Printf("  Size: %d\n", part.Size)
+		fmt.Printf("  Name: %s\n", string(part.Name[:])) // Convert byte array to string
+		fmt.Printf("  Correlative: %d\n", part.Correlative)
+		fmt.Printf("  Id: %v\n", part.Id) // Print byte array
+	}
+	LineaDoble(80)
+}
+
+func ReturnFitType(fitType string) [1]byte {
+	var fitByte byte
+	switch fitType {
+	case "BF":
+		fitByte = 'B'
+	case "FF":
+		fitByte = 'F'
+	case "WF":
+		fitByte = 'W'
+	default:
+		fitByte = 'F' // FF es el valor predeterminado
+	}
+	return [1]byte{fitByte}
+}
+
+func PrintMBRv3(mbr *Types.MBR) {
+	LineaDoble(80)
+	fmt.Println("*** MBR ***")
+	fmt.Printf("MBR Size: %d\n", mbr.MbrTamano)
+	creationDate, _ := strconv.ParseInt(string(mbr.MbrFechaCreacion[:]), 10, 64)
+	fmt.Printf("MBR Creation Date: %s\n", time.Unix(creationDate, 0).Format("2006-01-02 15:04:05"))
+	fmt.Printf("MBR Disk Signature: %d\n", mbr.MbrDiskSignature)
+	fmt.Printf("Disk Fit: %c\n", mbr.DskFit[0])
+
+	fmt.Println("\n*** Partitions ***")
+	for i, part := range mbr.Partitions {
+		fmt.Printf("\nPartition %d:\n", i+1)
+		fmt.Printf("  Status: %c\n", part.Status[0])
+		fmt.Printf("  Type: %c\n", part.Type[0])
+		fmt.Printf("  Fit: %c\n", part.Fit[0])
+		fmt.Printf("  Start: %d\n", part.Start)
+		fmt.Printf("  Size: %d\n", part.Size)
+		fmt.Printf("  Name: %s\n", string(part.Name[:])) // Convert byte array to string
+		fmt.Printf("  Correlative: %d\n", part.Correlative)
+		fmt.Printf("  Id: %v\n", part.Id) // Print byte array
+	}
+	LineaDoble(80)
 }

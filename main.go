@@ -11,6 +11,7 @@ import (
 	Rep "proyecto1/commands/rep"
 	Rmdisk "proyecto1/commands/rmdisk"
 	Reportes "proyecto1/reportes"
+	Types "proyecto1/types"
 	Utils "proyecto1/utils"
 	"strings"
 )
@@ -55,27 +56,63 @@ func main() {
 		case strings.HasPrefix(command, "mkdisk"):
 			params := strings.Fields(command)
 			archivoBinarioDiscoActual = mkdisk(params[1:])
-		case strings.HasPrefix(command, "fdisk"):
-			params := strings.Fields(command)
-			fdisk(params[1:])
 
-			mbr, err := Fdisk.ReadMBR(archivoBinarioDiscoActual)
+			fmt.Println("despues del mkdisk")
+			var TempMBR2 *Types.MBR
+			TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
 			if err != nil {
 				fmt.Println("Error leyendo el MBR:", err)
 				return
 			}
-			Utils.LineaDoble(60)
-			fmt.Println("mbr main:", mbr)
-			Utils.LineaDoble(60)
-			for i, p := range mbr.Partitions {
-				fmt.Printf("Partición %d: %+v\n", i+1, p)
+
+			Utils.PrintMBRv3(TempMBR2)
+		case strings.HasPrefix(command, "fdisk"):
+			params := strings.Fields(command)
+
+			fmt.Println("antes del fdisk")
+			var TempMBR2 *Types.MBR
+			TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+			if err != nil {
+				fmt.Println("Error leyendo el MBR:", err)
+				return
 			}
+			Utils.PrintMBRv3(TempMBR2)
+
+			fdisk(params[1:])
+
+			fmt.Println("despues del fdisk")
+			var TempMBR3 *Types.MBR
+			TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+			if err != nil {
+				fmt.Println("Error leyendo el MBR:", err)
+				return
+			}
+			Utils.PrintMBRv3(TempMBR3)
 		case strings.HasPrefix(command, "rmdisk"):
 			params := strings.Fields(command)
 			rmdisk(params[1:])
 		case strings.HasPrefix(command, "mount"):
 			params := strings.Fields(command)
+
+			fmt.Println("antes del mount")
+			var TempMBR2 *Types.MBR
+			TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+			if err != nil {
+				fmt.Println("Error leyendo el MBR:", err)
+				return
+			}
+			Utils.PrintMBRv3(TempMBR2)
+
 			mount(params[1:])
+
+			fmt.Println("despues del mount")
+			var TempMBR3 *Types.MBR
+			TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+			if err != nil {
+				fmt.Println("Error leyendo el MBR:", err)
+				return
+			}
+			Utils.PrintMBRv3(TempMBR3)
 		case strings.HasPrefix(command, "unmount"):
 			params := strings.Fields(command)
 			unmount(params[1:])
@@ -125,7 +162,7 @@ func mkdisk(params []string) string {
 	ajusteParticionActual = diskFit
 
 	// Creación del disco con el tamaño calculado en bytes
-	Mkdisk.CreateDiskWithSize(filename, int32(sizeInBytes))
+	Mkdisk.CreateDiskWithSize(filename, int32(sizeInBytes), diskFit)
 
 	fmt.Println("Disco creado con éxito!")
 
@@ -229,7 +266,13 @@ func mount(params []string) {
 		return
 	}
 
-	result, err = Mount.MountPartition(archivoBinarioDisco, driveletter, name)
+	mbr, err := Fdisk.ReadMBR(archivoBinarioDisco)
+	if err != nil {
+		fmt.Println("Error leyendo el MBR:", err)
+		return
+	}
+
+	result, err = Mount.MountPartition(mbr, archivoBinarioDisco, driveletter, name)
 	if err != nil {
 		fmt.Println(err)
 	}

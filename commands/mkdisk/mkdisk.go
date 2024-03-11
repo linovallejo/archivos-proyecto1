@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	Types "proyecto1/types"
+	Utils "proyecto1/utils"
 	"strconv"
 	"strings"
 	"time"
@@ -56,12 +57,13 @@ func CalculateDiskSize(size int64, unit string) (int64, error) {
 	}
 }
 
-func CreateDiskWithSize(filename string, size int32) {
+func CreateDiskWithSize(filename string, size int32, fit string) {
 	var mbr Types.MBR
 	mbr.MbrTamano = size
 	currentTime := time.Now()
 	copy(mbr.MbrFechaCreacion[:], currentTime.Format("2006-01-02T15:04:05"))
 	mbr.MbrDiskSignature = generateDiskSignature()
+	mbr.DskFit = Utils.ReturnFitType(fit)
 
 	file, err := os.Create(filename)
 	if err != nil {

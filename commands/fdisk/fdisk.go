@@ -114,7 +114,7 @@ func ReadMBR(filename string) (*Types.MBR, error) {
 	return &mbr, err
 }
 
-func writeMBR(filename string, mbr Types.MBR) error {
+func WriteMBR(filename string, mbr Types.MBR) error {
 	file, err := os.OpenFile(filename, os.O_WRONLY, 0666)
 	if err != nil {
 		return err
@@ -222,15 +222,28 @@ func createPartition(mbr *Types.MBR, start int64, size int32, unit string, typeP
 
 	// fmt.Println("El valor de typeByte es: ", typeByte[0])
 	// fmt.Println("El valor de fitByte es: ", fitByte)
+	var count = 0
+	var gap = int32(0)
+	// Iterate over the partitions
+	for i := 0; i < 4; i++ {
+		if mbr.Partitions[i].Size != 0 {
+			count++
+			gap = mbr.Partitions[i].Start + mbr.Partitions[i].Size
+		}
+	}
 
 	// Crear y "setear" la nueva partición
 	newPartition := Types.Partition{
-		Status: [1]byte{1},
-		Type:   typeByte,
-		Fit:    [1]byte{fitByte},
-		Start:  int32(start),
-		Size:   sizeInBytes,
-		Name:   partitionName,
+		Type: typeByte,
+		Fit:  [1]byte{fitByte},
+		Size: sizeInBytes,
+		Name: partitionName,
+	}
+
+	if count == 0 {
+		newPartition.Start = int32(binary.Size(mbr))
+	} else {
+		newPartition.Start = gap
 	}
 
 	// fmt.Println("La nueva partición es: ", newPartition)
@@ -240,9 +253,11 @@ func createPartition(mbr *Types.MBR, start int64, size int32, unit string, typeP
 	// fmt.Println("------------------------------------------------")
 
 	copy(newPartition.Name[:], name)
+	copy(newPartition.Status[:], "0")
+	newPartition.Correlative = int32(count + 1)
 	mbr.Partitions[partitionIndex] = newPartition
 
-	writeMBR(diskFileName, *mbr)
+	WriteMBR(diskFileName, *mbr)
 
 	return nil
 }
