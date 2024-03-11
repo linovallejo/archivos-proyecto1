@@ -131,7 +131,8 @@ func PrintMBRv3(mbr *Types.MBR) {
 		fmt.Printf("  Size: %d\n", part.Size)
 		fmt.Printf("  Name: %s\n", string(part.Name[:])) // Convert byte array to string
 		fmt.Printf("  Correlative: %d\n", part.Correlative)
-		fmt.Printf("  Id: %v\n", part.Id) // Print byte array
+		fmt.Printf("  Id: %v\n", part.Id)            // Print byte array
+		fmt.Printf("  Id: %s\n", string(part.Id[:])) // Print string
 	}
 	LineaDoble(80)
 }

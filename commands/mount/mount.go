@@ -21,15 +21,6 @@ func MountPartition(mbr *Types.MBR, diskFileName string, driveletter string, nam
 		return -1, err
 	}
 
-	// var TempMBR Types.MBR
-	// // Read object from bin file
-	// if err := Utilities.ReadObject(file, &TempMBR, 0); err != nil {
-	// 	return -1, err
-	// }
-
-	// // Print object
-	// PrintMBR(TempMBR)
-
 	fmt.Println("-------------")
 
 	var index int = -1
@@ -47,8 +38,6 @@ func MountPartition(mbr *Types.MBR, diskFileName string, driveletter string, nam
 
 	if index != -1 {
 		fmt.Println("Partition found")
-		//Utils.PrintPartition(&TempMBR.Partitions[index])
-		//Utils.PrintMBRv2(mbr)
 	} else {
 		fmt.Println("Partition not found")
 		return -1, nil
@@ -62,9 +51,6 @@ func MountPartition(mbr *Types.MBR, diskFileName string, driveletter string, nam
 	copy(mbr.Partitions[index].Id[:], id)
 
 	// Overwrite the MBR
-	// if err := Utilities.WriteObject(file, mbr, 0); err != nil {
-	// 	return -1, err
-	// }
 	Fdisk.WriteMBR(diskFileName, *mbr)
 
 	var TempMBR2 Types.MBR
@@ -74,7 +60,7 @@ func MountPartition(mbr *Types.MBR, diskFileName string, driveletter string, nam
 	}
 
 	// Print object
-	PrintMBR(TempMBR2)
+	// PrintMBR(TempMBR2)
 
 	// Close bin file
 	defer file.Close()
@@ -103,20 +89,17 @@ func ExtractMountParams(params []string) (string, string, error) {
 		return "", "", fmt.Errorf("No se encontraron parámetros")
 	}
 	var parametrosObligatoriosOk bool = false
-	sizeOk := false
 	driveletterOk := false
 	nameOk := false
 	for _, param1 := range params {
-		if strings.HasPrefix(param1, "-size=") {
-			sizeOk = true
-		} else if strings.HasPrefix(param1, "-driveletter=") {
+		if strings.HasPrefix(param1, "-driveletter=") {
 			driveletterOk = true
 		} else if strings.HasPrefix(param1, "-name=") {
 			nameOk = true
 		}
 	}
 
-	if sizeOk && driveletterOk && nameOk {
+	if driveletterOk && nameOk {
 		parametrosObligatoriosOk = true
 	}
 
