@@ -312,9 +312,6 @@ func findWorstFit(spaces []Space, size int32) *Space {
 	}
 	return worstSpace
 }
-
-// Asume que tienes una función que acepta estos parámetros y crea la partición.
-
 func ValidatePartitionTypeCreation(mbr *Types.MBR, partType string) error {
 	var countP, countE int
 
@@ -338,6 +335,20 @@ func ValidatePartitionTypeCreation(mbr *Types.MBR, partType string) error {
 	// Para L, asegúrate de que ya existe una partición Extendida
 	if partType == "L" && countE == 0 {
 		return fmt.Errorf("Debe existir una partición extendida para crear una partición lógica")
+	}
+
+	return nil
+}
+
+func ValidatePartitionsSizeAgainstDiskSize(mbr *Types.MBR, newPartitionSize int64) error {
+
+	var totalSizePartitions int64 = 0
+	for _, partition := range mbr.Partitions {
+		totalSizePartitions += int64(partition.Size)
+	}
+
+	if (totalSizePartitions + newPartitionSize) > int64(mbr.MbrTamano) {
+		return fmt.Errorf("El tamaño de las particiones supera el tamaño del disco")
 	}
 
 	return nil

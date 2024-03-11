@@ -214,12 +214,29 @@ func fdisk(params []string) {
 		fmt.Println("Error al validar el nombre de la partición:", err)
 	}
 
+	var sizeInBytes int64 = 0
+	switch unit {
+	case "B":
+		sizeInBytes = size
+	case "K":
+		sizeInBytes = size * 1024
+	case "M":
+		sizeInBytes = size * 1024 * 1024
+	}
+
+	err = Fdisk.ValidatePartitionsSizeAgainstDiskSize(mbr, sizeInBytes)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
 	// Parametro delete
 	if delete == "full" {
 		Fdisk.DeletePartition(mbr, archivoBinarioDisco, name)
 	}
 
 	// Parametro add
+	// TODO: Validar tamaño total de particiones + addValue <= tamaño tota del disco
 	if addValue > 0 || addValue < 0 {
 		Fdisk.AdjustPartitionSize(mbr, name, addValue, unit)
 		return
@@ -229,6 +246,7 @@ func fdisk(params []string) {
 	err = Fdisk.ValidatePartitionTypeCreation(mbr, typePart)
 	if err != nil {
 		fmt.Println("Error al validar la creación de la partición:", err)
+		return
 	}
 
 	// Tamaño de la partición en bytes

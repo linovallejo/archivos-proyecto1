@@ -1,16 +1,46 @@
 mkdisk -size=25 -unit=M -fit=BF
-fdisk -size=15 -unit=M  -driveletter=A -name=Particion1 -type=P -fit=BF
+fdisk -size=15 -unit=M  -driveletter=A -name=Primaria1 -type=P -fit=BF
 #El rep aun no funcniona
 #rep -name=disk -path=.\reportes\disk.pdf
 
-mount -driveletter=A -name=Particion1
+mount -driveletter=A -name=Primaria1
 
 
 #pause
 
-fdisk -size=5 -unit=M  -driveletter=A -name=Parti2 -type=P -fit=BF
+#validar maximo 4 primarias+extendidas = OK 11 marzo 12:05
+#fdisk -size=1 -unit=M  -driveletter=A -name=Primaria2 -type=P -fit=BF
+#fdisk -size=2 -unit=M  -driveletter=A -name=Primaria3 -type=P -fit=BF
+#fdisk -size=4 -unit=M  -driveletter=A -name=Extendida1 -type=E -fit=BF
+#fdisk -size=2 -unit=M  -driveletter=A -name=Primaria4 -type=P -fit=BF
 
-mount -driveletter=A -name=Parti2
+
+#validar solo una extendida por disco = OK 11 marzo 12:11
+#fdisk -size=1 -unit=M  -driveletter=A -name=Primaria2 -type=P -fit=BF
+#fdisk -size=2 -unit=M  -driveletter=A -name=Primaria3 -type=P -fit=BF
+#fdisk -size=4 -unit=M  -driveletter=A -name=Extendida1 -type=E -fit=BF
+#fdisk -size=1 -unit=M  -driveletter=A -name=Extendida2 -type=E -fit=BF
+
+#validar no se puede crear una logica si no hay una extendida = OK 11 marzo 12:15
+#fdisk -size=1 -unit=M  -driveletter=A -name=Primaria2 -type=P -fit=BF
+#fdisk -size=2 -unit=M  -driveletter=A -name=Primaria3 -type=P -fit=BF
+#fdisk -size=1 -unit=M  -driveletter=A -name=Logica1 -type=L -fit=BF
+
+#validar Total de particiones + nueva particion <= tamaño del disco = OK 11 marzo 12:34
+fdisk -size=5 -unit=M  -driveletter=A -name=Primaria2 -type=P -fit=BF
+fdisk -size=2 -unit=M  -driveletter=A -name=Primaria3 -type=P -fit=BF
+fdisk -size=5 -unit=M  -driveletter=A -name=Primaria4 -type=P -fit=BF
+
+#validar logicas dentro de la extendida sin sobrepasar su tamano
+#fdisk -size=1 -unit=M  -driveletter=A -name=Primaria2 -type=P -fit=BF
+#fdisk -size=2 -unit=M  -driveletter=A -name=Primaria3 -type=P -fit=BF
+#fdisk -size=4 -unit=M  -driveletter=A -name=Extendida1 -type=E -fit=BF
+#fdisk -size=1 -unit=M  -driveletter=A -name=Logica1 -type=L -fit=BF
+#fdisk -size=8 -unit=M  -driveletter=A -name=Extendida1 -type=E -fit=BF
+#fdisk -size=2 -unit=M  -driveletter=A -name=Primaria4 -type=P -fit=BF
+
+
+#mount -driveletter=A -name=Primaria2
 
 
 rmdisk -driveletter=A
