@@ -236,9 +236,9 @@ func fdisk(params []string) {
 	}
 
 	// Parametro add
-	// TODO: Validar tamaño total de particiones + addValue <= tamaño tota del disco
+	fmt.Println("addValue:", addValue)
 	if addValue > 0 || addValue < 0 {
-		Fdisk.AdjustPartitionSize(mbr, name, addValue, unit)
+		Fdisk.AdjustPartitionSize(mbr, name, addValue, unit, archivoBinarioDisco)
 		return
 	}
 

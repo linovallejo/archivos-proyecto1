@@ -27,9 +27,9 @@ mount -driveletter=A -name=Primaria1
 #fdisk -size=1 -unit=M  -driveletter=A -name=Logica1 -type=L -fit=BF
 
 #validar Total de particiones + nueva particion <= tamaño del disco = OK 11 marzo 12:34
-fdisk -size=5 -unit=M  -driveletter=A -name=Primaria2 -type=P -fit=BF
-fdisk -size=2 -unit=M  -driveletter=A -name=Primaria3 -type=P -fit=BF
-fdisk -size=5 -unit=M  -driveletter=A -name=Primaria4 -type=P -fit=BF
+#fdisk -size=5 -unit=M  -driveletter=A -name=Primaria2 -type=P -fit=BF
+#fdisk -size=2 -unit=M  -driveletter=A -name=Primaria3 -type=P -fit=BF
+#fdisk -size=5 -unit=M  -driveletter=A -name=Primaria4 -type=P -fit=BF
 
 #validar logicas dentro de la extendida sin sobrepasar su tamano
 #fdisk -size=1 -unit=M  -driveletter=A -name=Primaria2 -type=P -fit=BF
@@ -39,6 +39,9 @@ fdisk -size=5 -unit=M  -driveletter=A -name=Primaria4 -type=P -fit=BF
 #fdisk -size=8 -unit=M  -driveletter=A -name=Extendida1 -type=E -fit=BF
 #fdisk -size=2 -unit=M  -driveletter=A -name=Primaria4 -type=P -fit=BF
 
+#fdisk add
+#fdisk -add=1 -unit=M -driveletter=A -name=Primaria1
+fdisk -add=-2 -unit=M -driveletter=A -name=Primaria1
 
 #mount -driveletter=A -name=Primaria2
 

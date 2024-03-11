@@ -23,6 +23,7 @@ func ExtractFdiskParams(params []string) (int64, string, string, string, string,
 	var size int64
 	var driveletter, name, unit, parttype, fit, delete, add string
 	var addValue int64 = 0
+	var err error
 
 	if len(params) == 0 {
 		return 0, "", "", "", "", "", "", 0, fmt.Errorf("No se encontraron parámetros")
@@ -32,6 +33,7 @@ func ExtractFdiskParams(params []string) (int64, string, string, string, string,
 	sizeOk := false
 	driveletterOk := false
 	nameOk := false
+	addOk := false
 	for _, param1 := range params {
 		if strings.HasPrefix(param1, "-size=") {
 			sizeOk = true
@@ -39,7 +41,13 @@ func ExtractFdiskParams(params []string) (int64, string, string, string, string,
 			driveletterOk = true
 		} else if strings.HasPrefix(param1, "-name=") {
 			nameOk = true
+		} else if strings.HasPrefix(param1, "-add=") {
+			addOk = true
 		}
+	}
+
+	if !sizeOk && addOk {
+		sizeOk = true
 	}
 
 	if sizeOk && driveletterOk && nameOk {
@@ -99,16 +107,16 @@ func ExtractFdiskParams(params []string) (int64, string, string, string, string,
 			if fit != "BF" && fit != "FF" && fit != "WF" {
 				return 0, "", "", "", "", "", "", 0, fmt.Errorf("Parametro fit invalido")
 			}
-		case strings.HasPrefix(param, "-delete"):
+		case strings.HasPrefix(param, "-delete="):
 			delete = strings.TrimPrefix(param, "-delete")
 			// Validar el parametro delete
 			if delete != "fast" && delete != "full" {
 				return 0, "", "", "", "", "", "", 0, fmt.Errorf("Parametro delete invalido")
 			}
-		case strings.HasPrefix(param, "-add"):
-			add = strings.TrimPrefix(param, "-add")
+		case strings.HasPrefix(param, "-add="):
+			add = strings.TrimPrefix(param, "-add=")
 			// Validar el parametro add
-			addValue, err := strconv.Atoi(add)
+			addValue, err = strconv.ParseInt(add, 10, 64)
 			if err != nil {
 				fmt.Println("Parametro add invalido")
 				continue
@@ -119,7 +127,7 @@ func ExtractFdiskParams(params []string) (int64, string, string, string, string,
 		}
 	}
 
-	if size == 0 || driveletter == "" || name == "" {
+	if (size == 0 && !addOk) || driveletter == "" || name == "" {
 		return 0, "", "", "", "", "", "", 0, fmt.Errorf("Parametro obligatorio faltante")
 	}
 
@@ -557,6 +565,8 @@ func getPartitionDetails(mbr *Types.MBR, partitionName string) (int32, int32, er
 
 func canAdjustPartitionSize(mbr *Types.MBR, partitionIndex int, sizeInBytes int64) bool {
 	currentPartition := mbr.Partitions[partitionIndex]
+	fmt.Println("Partición actual:", currentPartition)
+	fmt.Println("Espacio a ajustar:", sizeInBytes)
 
 	// Verificar si se reduce el tamaño y se mantiene positivo
 	if sizeInBytes < 0 && (int64(currentPartition.Size)+sizeInBytes) < 0 {
@@ -572,9 +582,11 @@ func canAdjustPartitionSize(mbr *Types.MBR, partitionIndex int, sizeInBytes int6
 				totalUsedSpace += int64(partition.Size) // Convert partition.Size to int64 before adding
 			}
 		}
+		fmt.Println("Espacio utilizado:", totalUsedSpace)
 
 		// Espacio disponible en el disco
 		spaceAvailable := int64(mbr.MbrTamano) - totalUsedSpace
+		fmt.Println("Espacio disponible:", spaceAvailable)
 
 		// Verificar si el espacio disponible es suficiente para la expansión
 		if sizeInBytes > spaceAvailable {
@@ -609,22 +621,40 @@ func convertUnitToAddValue(addValue int64, unit string) int64 {
 	}
 }
 
-func AdjustPartitionSize(mbr *Types.MBR, partitionName string, addValue int64, unit string) error {
+func AdjustPartitionSize(mbr *Types.MBR, partitionName string, addValue int64, unit string, diskFileName string) error {
 	// Conversión del valor add según la unidad
 	var sizeInBytes int64 = convertUnitToAddValue(addValue, unit)
 
-	partitionIndex, _ := findPartitionByName(mbr, partitionName)
-	if partitionIndex == -1 {
-		return fmt.Errorf("la partición '%s' no se encontró", partitionName)
+	fmt.Println("Espacio a ajustar:", sizeInBytes)
+	fmt.Println("Partición:", partitionName)
+
+	// partitionIndex, _ := findPartitionByName(mbr, partitionName)
+	// if partitionIndex == -1 {
+	// 	return fmt.Errorf("la partición '%s' no se encontró", partitionName)
+	// }
+
+	var partitionIndex int64 = 0
+
+	for i, partition := range mbr.Partitions {
+		// Asume que el nombre de la partición se almacena en un array de bytes y necesita ser convertido a string
+		if string(partition.Name[:]) == partitionName {
+			partitionIndex = int64(i)
+		}
 	}
 
+	fmt.Println("Partición encontrada:", partitionIndex)
+
 	// Verifica si se puede agregar o quitar espacio
-	if !canAdjustPartitionSize(mbr, partitionIndex, sizeInBytes) {
+	if !canAdjustPartitionSize(mbr, int(partitionIndex), sizeInBytes) {
 		return fmt.Errorf("no es posible ajustar el tamaño de la partición '%s'", partitionName)
 	}
 
+	fmt.Println("Ajustando el tamaño de la partición...")
+
 	// Ajusta el tamaño de la partición
 	mbr.Partitions[partitionIndex].Size += int32(sizeInBytes)
+
+	WriteMBR(diskFileName, *mbr)
 
 	// Opcional: Rellenar con '\0' si se reduce el tamaño y se especifica "Full"
 
