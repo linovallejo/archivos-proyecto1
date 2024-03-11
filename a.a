@@ -40,8 +40,9 @@ mount -driveletter=A -name=Primaria1
 #fdisk -size=2 -unit=M  -driveletter=A -name=Primaria4 -type=P -fit=BF
 
 #fdisk add
-#fdisk -add=1 -unit=M -driveletter=A -name=Primaria1
-fdisk -add=-2 -unit=M -driveletter=A -name=Primaria1
+#fdisk -add=2 -unit=M -driveletter=A -name=Primaria1
+#fdisk -add=-2 -unit=M -driveletter=A -name=Primaria1
+fdisk -add=30 -unit=M -driveletter=A -name=Primaria1
 
 #mount -driveletter=A -name=Primaria2
 

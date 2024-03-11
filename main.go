@@ -238,7 +238,10 @@ func fdisk(params []string) {
 	// Parametro add
 	fmt.Println("addValue:", addValue)
 	if addValue > 0 || addValue < 0 {
-		Fdisk.AdjustPartitionSize(mbr, name, addValue, unit, archivoBinarioDisco)
+		err = Fdisk.AdjustPartitionSize(mbr, name, addValue, unit, archivoBinarioDisco)
+		if err != nil {
+			fmt.Println("Error al ajustar el tamaño de la partición:", err)
+		}
 		return
 	}
 
