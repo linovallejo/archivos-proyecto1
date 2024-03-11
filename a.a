@@ -5,6 +5,12 @@ fdisk -size=15 -unit=M  -driveletter=A -name=Particion1 -type=P -fit=BF
 
 mount -driveletter=A -name=Particion1
 
+
 #pause
+
+fdisk -size=5 -unit=M  -driveletter=A -name=Parti2 -type=P -fit=BF
+
+mount -driveletter=A -name=Parti2
+
 
 rmdisk -driveletter=A

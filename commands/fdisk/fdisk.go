@@ -186,11 +186,8 @@ func calculateTotalUsedSpace(mbr Types.MBR) (int32, error) {
 }
 
 func createPartition(mbr *Types.MBR, start int64, size int32, unit string, typePart, fit, name string, diskFileName string) error {
-	var partitionName [16]byte
-	copy(partitionName[:], name)
 
 	var sizeInBytes int32 = 0
-	// fmt.Println("El tamaño de la partición es: ", size, " en ", unit)
 	switch unit {
 	case "B":
 		sizeInBytes = size
@@ -202,62 +199,6 @@ func createPartition(mbr *Types.MBR, start int64, size int32, unit string, typeP
 		return fmt.Errorf("Unidad invalida")
 	}
 
-	// fmt.Println("El tamaño calculado de la partición es: ", sizeInBytes)
-	// Comprbar si hay un slot disponible para la partición disponible y validar la unicidad del nombre
-	partitionIndex := -1
-	for i, partition := range mbr.Partitions {
-		if partition.Status == [1]byte{0} { // Asume que 0 indica un slot disponible
-			if partitionIndex == -1 {
-				partitionIndex = i
-			}
-		} else if string(partition.Name[:]) == name {
-			return fmt.Errorf("Nombre de particion ya existe")
-		}
-	}
-
-	if partitionIndex == -1 {
-		return fmt.Errorf("No hay slots disponibles para la nueva partición")
-	}
-
-	// fmt.Println("El indice de La partición es: ", partitionIndex)
-
-	// Verifica si hay espacio suficiente para la nueva partición (asumiendo una asignación lineal para simplificar).
-	var totalUsedSpace int32 = 0
-	var err error
-
-	totalUsedSpace, err = calculateTotalUsedSpace(*mbr)
-	if err != nil {
-		fmt.Println("Error calculando el espacio total usado: ", err)
-		return err
-	}
-
-	// fmt.Println("El valor de totalUsedSpace es: ", totalUsedSpace)
-	// fmt.Println("El valor de sizeInBytes es: ", sizeInBytes)
-	// fmt.Println("El valor de mbr.MbrTamano es: ", mbr.MbrTamano)
-
-	if (totalUsedSpace + sizeInBytes) > mbr.MbrTamano {
-		return fmt.Errorf("No hay suficiente espacio para la nueva partición")
-	}
-
-	// fmt.Println("Espacio disponible: ", mbr.MbrTamano-totalUsedSpace)
-
-	// Convertir typePart y fit a sus representaciones de byte correspondientes
-	var typeByte [1]byte
-	typeByte[0] = typePart[0] // 'P', 'E' o 'L'
-	var fitByte byte
-	switch fit {
-	case "BF":
-		fitByte = 'B'
-	case "FF":
-		fitByte = 'F'
-	case "WF":
-		fitByte = 'W'
-	default:
-		fitByte = 'F' // FF es el valor predeterminado
-	}
-
-	// fmt.Println("El valor de typeByte es: ", typeByte[0])
-	// fmt.Println("El valor de fitByte es: ", fitByte)
 	var count = 0
 	var gap = int32(0)
 	// Iterate over the partitions
@@ -268,30 +209,24 @@ func createPartition(mbr *Types.MBR, start int64, size int32, unit string, typeP
 		}
 	}
 
-	// Crear y "setear" la nueva partición
-	newPartition := Types.Partition{
-		Type: typeByte,
-		Fit:  [1]byte{fitByte},
-		Size: sizeInBytes,
-		Name: partitionName,
+	for i := 0; i < 4; i++ {
+		if mbr.Partitions[i].Size == 0 {
+			mbr.Partitions[i].Size = sizeInBytes
+
+			if count == 0 {
+				mbr.Partitions[i].Start = int32(binary.Size(mbr))
+			} else {
+				mbr.Partitions[i].Start = gap
+			}
+
+			copy(mbr.Partitions[i].Name[:], name)
+			copy(mbr.Partitions[i].Fit[:], fit)
+			copy(mbr.Partitions[i].Status[:], "0")
+			copy(mbr.Partitions[i].Type[:], typePart)
+			mbr.Partitions[i].Correlative = int32(count + 1)
+			break
+		}
 	}
-
-	if count == 0 {
-		newPartition.Start = int32(binary.Size(mbr))
-	} else {
-		newPartition.Start = gap
-	}
-
-	// fmt.Println("La nueva partición es: ", newPartition)
-
-	// fmt.Println("Particion creada con exito")
-	// fmt.Println(newPartition.Name)
-	// fmt.Println("------------------------------------------------")
-
-	copy(newPartition.Name[:], name)
-	copy(newPartition.Status[:], "0")
-	newPartition.Correlative = int32(count + 1)
-	mbr.Partitions[partitionIndex] = newPartition
 
 	WriteMBR(diskFileName, *mbr)
 
