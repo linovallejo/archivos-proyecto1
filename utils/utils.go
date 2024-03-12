@@ -124,7 +124,7 @@ func PrintMBRv3(mbr *Types.MBR) {
 	fmt.Println("\n*** Partitions ***")
 	for i, part := range mbr.Partitions {
 		fmt.Printf("\nPartition %d:\n", i+1)
-		fmt.Printf("  Status: %c\n", part.Status[0])
+		fmt.Printf("  Status: %d\n", part.Status[0])
 		fmt.Printf("  Type: %c\n", part.Type[0])
 		fmt.Printf("  Fit: %c\n", part.Fit[0])
 		fmt.Printf("  Start: %d\n", part.Start)

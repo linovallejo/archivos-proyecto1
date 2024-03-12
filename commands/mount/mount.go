@@ -143,14 +143,58 @@ func ExtractMountParams(params []string) (string, string, error) {
 	return driveletter, name, nil
 }
 
-func UnmountPartition(id string) {
+func UnmountPartition(mbr *Types.MBR, id string, diskFileName string) (int, error) {
 	fmt.Println("======Start UNMOUNT======")
 	fmt.Println("Id:", id)
-	fmt.Println("======End UNMOUNT======")
+	fmt.Println("Disk File Name:", diskFileName)
+
+	var partitionIndex int = -1
+	for i := 0; i < 4; i++ {
+		if strings.Contains(string(mbr.Partitions[i].Id[:]), id) {
+			partitionIndex = i
+			break
+		}
+	}
+	if partitionIndex >= 0 {
+		//fmt.Println("Partition Index:", partitionIndex)
+		var partitionToUnmount Types.Partition = mbr.Partitions[partitionIndex]
+		//fmt.Println("Partition to unmount:", partitionToUnmount)
+		partitionToUnmount.Status[0] = 0
+		//fmt.Println("Partition unmounted:", partitionToUnmount)
+
+		mbr.Partitions[partitionIndex] = partitionToUnmount
+
+		err := Fdisk.WriteMBR(diskFileName, *mbr)
+		if err != nil {
+			return -1, err
+		}
+
+		fmt.Println("======End UNMOUNT======")
+		return 0, nil
+	} else {
+		return -1, fmt.Errorf("No se encontro la partición")
+	}
 }
 
 func ExtractUnmountParams(params []string) (string, error) {
 	var id string = ""
+
+	if len(params) == 0 {
+		return "", fmt.Errorf("No se encontraron parámetros")
+	}
+	var parametrosObligatoriosOk bool = false
+	idOk := false
+	for _, param1 := range params {
+		if strings.HasPrefix(param1, "-id=") {
+			idOk = true
+		}
+	}
+
+	parametrosObligatoriosOk = idOk
+
+	if !parametrosObligatoriosOk {
+		return "", fmt.Errorf("No se encontraron parámetros obligatorios")
+	}
 
 	for _, param := range params {
 		switch {
@@ -162,4 +206,18 @@ func ExtractUnmountParams(params []string) (string, error) {
 	}
 
 	return id, nil
+}
+
+func ValidatePartitionId(mbr *Types.MBR, id string) (string, error) {
+	var partitionId string = ""
+	for i := 0; i < 4; i++ {
+		if strings.Contains(string(mbr.Partitions[i].Id[:]), id) {
+			partitionId = string(mbr.Partitions[i].Id[:])
+			break
+		}
+	}
+	if partitionId == "" {
+		return "", fmt.Errorf("No se encontró la partición con el id especificado")
+	}
+	return partitionId, nil
 }

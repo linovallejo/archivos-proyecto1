@@ -54,11 +54,18 @@ mount -driveletter=A -name=Primaria1
 
 
 #mount
-fdisk -size=1 -unit=M  -driveletter=A -name=Primaria2 -type=P -fit=BF
-fdisk -size=1 -unit=M  -driveletter=A -name=Primaria3 -type=P -fit=BF
-mount -driveletter=A -name=Primaria2
+#fdisk -size=1 -unit=M  -driveletter=A -name=Primaria2 -type=P -fit=BF
+#fdisk -size=1 -unit=M  -driveletter=A -name=Primaria3 -type=P -fit=BF
+#mount -driveletter=A -name=Primaria2
 #test primaria ya montada
 #mount -driveletter=A -name=Primaria1
+
+#unmount
+unmount -id=A123
+#unmount -id=A128
+pause
+mount -driveletter=A -name=Primaria1
+
 
 
 rmdisk -driveletter=A

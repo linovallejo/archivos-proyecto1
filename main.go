@@ -127,7 +127,7 @@ func main() {
 			Utils.PrintMBRv3(TempMBR3)
 		case strings.HasPrefix(command, "unmount"):
 			params := strings.Fields(command)
-			unmount(params[1:])
+			unmount(params[1:], archivoBinarioDiscoActual)
 		case strings.HasPrefix(command, "rep"):
 			params := strings.Fields(command)
 			rep(archivoBinarioDiscoActual, params[1:])
@@ -328,13 +328,45 @@ func mount(params []string) {
 
 }
 
-func unmount(params []string) {
+func unmount(params []string, archivoBinarioDisco string) {
 	id, err := Mount.ExtractUnmountParams(params)
 	if err != nil {
 		fmt.Println("Error al procesar los parámetros UNMOUNT:", err)
 	}
 
-	Mount.UnmountPartition(id)
+	// Leer el MBR existente
+	mbr, err := Fdisk.ReadMBR(archivoBinarioDisco)
+	if err != nil {
+		fmt.Println("Error leyendo el MBR:", err)
+		return
+	}
+
+	fmt.Println("mbr in unmount:", mbr)
+	fmt.Println("id:", id)
+
+	_, err = Mount.ValidatePartitionId(mbr, id)
+	if err != nil {
+		fmt.Println(err)
+		return
+	} else {
+		fmt.Println("Partición encontrada.")
+	}
+
+	_, err = Mount.UnmountPartition(mbr, id, archivoBinarioDisco)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("Partición desmontada exitosamente.")
+	}
+
+	var TempMBR2 *Types.MBR
+	TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDisco)
+	if err != nil {
+		fmt.Println("Error leyendo el MBR:", err)
+	} else {
+		Utils.PrintMBRv3(TempMBR2)
+		//Utils.PrintMounted(TempMBR2)
+	}
 }
 
 func rep(diskFileName string, params []string) {
