@@ -39,15 +39,22 @@ func MountPartition(mbr *Types.MBR, diskFileName string, driveletter string, nam
 	if index != -1 {
 		fmt.Println("Partition found")
 	} else {
+		defer file.Close()
 		fmt.Println("Partition not found")
 		return -1, nil
+	}
+
+	if strings.Contains(string(mbr.Partitions[index].Status[:]), "1") {
+		defer file.Close()
+		return -1, fmt.Errorf("no es posible montar una particion que ya se encuentra montada")
 	}
 
 	// id = DriveLetter + Correlative + 19
 
 	id := strings.ToUpper(driveletter) + strconv.Itoa(count) + "23"
 
-	copy(mbr.Partitions[index].Status[:], "1")
+	//copy(mbr.Partitions[index].Status[:], "1")
+	mbr.Partitions[index].Status[0] = 1
 	copy(mbr.Partitions[index].Id[:], id)
 
 	// Overwrite the MBR
@@ -56,6 +63,7 @@ func MountPartition(mbr *Types.MBR, diskFileName string, driveletter string, nam
 	var TempMBR2 Types.MBR
 	// Read object from bin file
 	if err := Utilities.ReadObject(file, &TempMBR2, 0); err != nil {
+		defer file.Close()
 		return -1, err
 	}
 

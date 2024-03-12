@@ -3,7 +3,7 @@ fdisk -size=15 -unit=M  -driveletter=A -name=Primaria1 -type=P -fit=BF
 #El rep aun no funcniona
 #rep -name=disk -path=.\reportes\disk.pdf
 
-#mount -driveletter=A -name=Primaria1
+mount -driveletter=A -name=Primaria1
 
 
 #pause
@@ -45,12 +45,20 @@ fdisk -size=15 -unit=M  -driveletter=A -name=Primaria1 -type=P -fit=BF
 #fdisk -add=30 -unit=M -driveletter=A -name=Primaria1
 
 #fdisk delete
-fdisk -size=4 -unit=M  -driveletter=A -name=Extendida1 -type=E -fit=BF
-fdisk -delete=full -driveletter=A -name=Primaria1
-fdisk -delete=full -driveletter=A -name=Extendida1
+#fdisk -size=4 -unit=M  -driveletter=A -name=Extendida1 -type=E -fit=BF
+#fdisk -delete=full -driveletter=A -name=Primaria1
+#fdisk -delete=full -driveletter=A -name=Extendida1
 
 
 #mount -driveletter=A -name=Primaria2
+
+
+#mount
+fdisk -size=1 -unit=M  -driveletter=A -name=Primaria2 -type=P -fit=BF
+fdisk -size=1 -unit=M  -driveletter=A -name=Primaria3 -type=P -fit=BF
+mount -driveletter=A -name=Primaria2
+#test primaria ya montada
+#mount -driveletter=A -name=Primaria1
 
 
 rmdisk -driveletter=A

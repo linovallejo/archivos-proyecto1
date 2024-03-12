@@ -319,6 +319,13 @@ func mount(params []string) {
 		fmt.Println("Error al montar la partición.")
 	}
 
+	mbr, err = Fdisk.ReadMBR(archivoBinarioDisco)
+	if err != nil {
+		fmt.Println("Error leyendo el MBR:", err)
+		return
+	}
+	Utils.PrintMounted(mbr)
+
 }
 
 func unmount(params []string) {

@@ -210,33 +210,76 @@ func createPartition(mbr *Types.MBR, start int64, size int32, unit string, typeP
 		return fmt.Errorf("Unidad invalida")
 	}
 
-	var count = 0
-	var gap = int32(0)
-	// Iterate over the partitions
-	for i := 0; i < 4; i++ {
-		if mbr.Partitions[i].Size != 0 {
-			count++
-			gap = mbr.Partitions[i].Start + mbr.Partitions[i].Size
+	if typePart == "P" || typePart == "E" {
+		var count = 0
+		var gap = int32(0)
+		// Iterate over the partitions
+		for i := 0; i < 4; i++ {
+			if mbr.Partitions[i].Size != 0 {
+				count++
+				gap = mbr.Partitions[i].Start + mbr.Partitions[i].Size
+			}
+		}
+
+		for i := 0; i < 4; i++ {
+			if mbr.Partitions[i].Size == 0 {
+				mbr.Partitions[i].Size = sizeInBytes
+
+				if count == 0 {
+					mbr.Partitions[i].Start = int32(binary.Size(mbr))
+				} else {
+					mbr.Partitions[i].Start = gap
+				}
+
+				copy(mbr.Partitions[i].Name[:], name)
+				copy(mbr.Partitions[i].Fit[:], fit)
+				//copy(mbr.Partitions[i].Status[:], "0")
+				mbr.Partitions[i].Status[0] = 0
+				copy(mbr.Partitions[i].Type[:], typePart)
+				mbr.Partitions[i].Correlative = int32(count + 1)
+				break
+			}
 		}
 	}
 
-	for i := 0; i < 4; i++ {
-		if mbr.Partitions[i].Size == 0 {
-			mbr.Partitions[i].Size = sizeInBytes
+	if typePart == "E" {
+		// Instead of directly accessing logicalPartitions, use AddOrUpdateLogicalPartition
+		AddOrUpdateLogicalPartition(diskFileName, &LogicalPartitionInfo{
+			ExtendedStart: int32(start), // Assuming start can be safely converted to int32
+			FirstEBR:      nil,          // Initially, there's no EBR
+		})
+		return nil
+	}
 
-			if count == 0 {
-				mbr.Partitions[i].Start = int32(binary.Size(mbr))
-			} else {
-				mbr.Partitions[i].Start = gap
-			}
-
-			copy(mbr.Partitions[i].Name[:], name)
-			copy(mbr.Partitions[i].Fit[:], fit)
-			copy(mbr.Partitions[i].Status[:], "0")
-			copy(mbr.Partitions[i].Type[:], typePart)
-			mbr.Partitions[i].Correlative = int32(count + 1)
-			break
+	// Logical Partition Check
+	if typePart == "L" {
+		// Use GetLogicalPartition to check if the extended partition exists
+		info, exists := GetLogicalPartition(diskFileName)
+		if !exists {
+			return fmt.Errorf("logical partition requires an extended partition")
 		}
+
+		// Assuming the logic to find space in extended and create a new EBR is encapsulated elsewhere...
+		newEBR := &Types.EBR{
+			// ... Fill in the EBR fields (start, size, etc.)
+			PartStart: 0,
+			PartSize:  sizeInBytes,
+		}
+		copy(newEBR.PartFit[:], fit)
+		copy(newEBR.PartName[:], name)
+		newEBR.PartMount = [1]byte{0}
+
+		// Assuming there's logic to correctly set FirstEBR or add the new EBR to the existing chain,
+		// which might involve more functions in the `partition` package for manipulating the EBR chain.
+		if info.FirstEBR == nil {
+			// Direct modification is no longer appropriate; you might need a function to update this.
+			SetFirstEBR(diskFileName, newEBR)
+		} else {
+			// Similarly, logic to add the EBR to the chain would be encapsulated in a function
+			AddEBRToChain(diskFileName, newEBR)
+		}
+
+		return nil
 	}
 
 	WriteMBR(diskFileName, *mbr)

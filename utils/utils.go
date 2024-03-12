@@ -136,3 +136,31 @@ func PrintMBRv3(mbr *Types.MBR) {
 	}
 	LineaDoble(80)
 }
+
+func PrintMounted(mbr *Types.MBR) {
+	LineaDoble(80)
+	// fmt.Println("*** MBR ***")
+	// fmt.Printf("MBR Size: %d\n", mbr.MbrTamano)
+	// creationDate, _ := strconv.ParseInt(string(mbr.MbrFechaCreacion[:]), 10, 64)
+	// fmt.Printf("MBR Creation Date: %s\n", time.Unix(creationDate, 0).Format("2006-01-02 15:04:05"))
+	// fmt.Printf("MBR Disk Signature: %d\n", mbr.MbrDiskSignature)
+	// fmt.Printf("Disk Fit: %c\n", mbr.DskFit[0])
+
+	fmt.Println("\n*** Particiones Montadas ***")
+	for i, part := range mbr.Partitions {
+		if part.Status[0] == 1 {
+			fmt.Printf("\nPartition %d:\n", i+1)
+			fmt.Printf("  Status: %d\n", part.Status[0])
+			fmt.Printf("  Type: %c\n", part.Type[0])
+			fmt.Printf("  Fit: %c\n", part.Fit[0])
+			fmt.Printf("  Start: %d\n", part.Start)
+			fmt.Printf("  Size: %d\n", part.Size)
+			fmt.Printf("  Name: %s\n", string(part.Name[:]))
+			fmt.Printf("  Correlative: %d\n", part.Correlative)
+			fmt.Printf("  Id: %v\n", part.Id)
+			fmt.Printf("  Id: %s\n", string(part.Id[:]))
+
+		}
+	}
+	LineaDoble(80)
+}
