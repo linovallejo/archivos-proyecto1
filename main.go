@@ -92,6 +92,10 @@ func main() {
 				return
 			}
 			Utils.PrintMBRv3(TempMBR3)
+
+			logicalPartitions, _ := Fdisk.GetLogicalPartition(archivoBinarioDiscoActual)
+			Fdisk.PrintLogicalPartitions(logicalPartitions)
+
 		case strings.HasPrefix(command, "rmdisk"):
 			// fmt.Println("¿Está seguro de que desea eliminar el disco? [s/N]:")
 			// var response string
@@ -224,19 +228,44 @@ func fdisk(params []string) {
 		sizeInBytes = size * 1024 * 1024
 	}
 
-	err = Fdisk.ValidatePartitionsSizeAgainstDiskSize(mbr, sizeInBytes)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
+	if typePart != "L" {
+		err = Fdisk.ValidatePartitionsSizeAgainstDiskSize(mbr, sizeInBytes)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
 	}
 
 	// Parametro delete
 	if delete == "full" {
-		err = Fdisk.DeletePartition(mbr, archivoBinarioDisco, name)
-		if err != nil {
-			fmt.Println("Error al eliminar la partición:", err)
+		var partitionType string = ""
+		var partitionName string = ""
+		for _, part := range mbr.Partitions {
+			partitionName = Utils.CleanPartitionName(part.Name[:])
+			if strings.TrimSpace(partitionName) == strings.TrimSpace(name) {
+				partitionType = string(part.Type[:])
+			}
+		}
+
+		fmt.Println("partitionType to be deleted:", partitionType)
+		if partitionType == "P" || partitionType == "E" {
+			err = Fdisk.DeletePartition(mbr, archivoBinarioDisco, name)
+			if err != nil {
+				fmt.Println("Error al eliminar la partición:", err)
+			} else {
+				fmt.Println("Partición eliminada exitosamente.")
+			}
 		} else {
-			fmt.Println("Partición eliminada exitosamente.")
+			logicalPartitions, _ := Fdisk.GetLogicalPartition(archivoBinarioDisco)
+			Fdisk.PrintLogicalPartitions(logicalPartitions)
+
+			err = Fdisk.DeleteLogicalPartition(logicalPartitions, name)
+			if err != nil {
+				fmt.Println("Error al eliminar la partición:", err)
+			}
+
+			Fdisk.PrintLogicalPartitions(logicalPartitions)
+
 		}
 		return
 	}

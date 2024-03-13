@@ -1,9 +1,9 @@
 mkdisk -size=25 -unit=M -fit=BF
 fdisk -size=15 -unit=M  -driveletter=A -name=Primaria1 -type=P -fit=BF
-#El rep aun no funcniona
+#El rep aun no funciona
 #rep -name=disk -path=.\reportes\disk.pdf
 
-mount -driveletter=A -name=Primaria1
+#mount -driveletter=A -name=Primaria1
 
 
 #pause
@@ -61,11 +61,20 @@ mount -driveletter=A -name=Primaria1
 #mount -driveletter=A -name=Primaria1
 
 #unmount
-unmount -id=A123
+#unmount -id=A123
 #unmount -id=A128
-pause
-mount -driveletter=A -name=Primaria1
+#pause
+#mount -driveletter=A -name=Primaria1
 
+
+#logicas
+fdisk -size=9 -unit=M  -driveletter=A -name=Extendida1 -type=E -fit=BF
+fdisk -size=5 -unit=M  -driveletter=A -name=Logica1 -type=L -fit=BF
+#fdisk -size=2 -unit=M  -driveletter=A -name=Logica2 -type=L -fit=BF
+#fdisk -size=8 -unit=M  -driveletter=A -name=Logica2 -type=L -fit=BF
+#fdisk -delete=full -driveletter=A -name=Primaria1
+#fdisk -delete=full -driveletter=A -name=Extendida1
+fdisk -delete=full -driveletter=A -name=Logica1
 
 
 rmdisk -driveletter=A

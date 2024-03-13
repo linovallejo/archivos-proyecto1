@@ -236,6 +236,7 @@ func createPartition(mbr *Types.MBR, start int64, size int32, unit string, typeP
 				//copy(mbr.Partitions[i].Status[:], "0")
 				mbr.Partitions[i].Status[0] = 0
 				copy(mbr.Partitions[i].Type[:], typePart)
+				//mbr.Partitions[i].Type[0] = typePart[0]
 				mbr.Partitions[i].Correlative = int32(count + 1)
 				break
 			}
@@ -248,15 +249,52 @@ func createPartition(mbr *Types.MBR, start int64, size int32, unit string, typeP
 			ExtendedStart: int32(start), // Assuming start can be safely converted to int32
 			FirstEBR:      nil,          // Initially, there's no EBR
 		})
-		return nil
+
+		_, exists1 := GetLogicalPartition(diskFileName)
+		if exists1 {
+			fmt.Println("logical partition created successfully")
+		} else {
+			fmt.Println("logical partition requires an extended partition")
+		}
 	}
 
 	// Logical Partition Check
 	if typePart == "L" {
+		fmt.Println("logical partition to be created")
 		// Use GetLogicalPartition to check if the extended partition exists
 		info, exists := GetLogicalPartition(diskFileName)
 		if !exists {
 			return fmt.Errorf("logical partition requires an extended partition")
+		}
+
+		var extendedPartition *Types.Partition
+		var err error
+		extendedPartition, err = GetExtendedPartition(diskFileName)
+		if err != nil {
+			return fmt.Errorf("logical partition requires an extended partition in the MBR")
+		}
+		var sizeInBytesExtended int32 = int32(extendedPartition.Size)
+		fmt.Println("sizeInBytesExtended:", sizeInBytesExtended)
+		fmt.Println("sizeInBytesLogical:", sizeInBytes)
+
+		if info.FirstEBR == nil {
+			if sizeInBytesExtended < sizeInBytes {
+				return fmt.Errorf("logical partition size exceeds extended partition size")
+			}
+		} else {
+			var totalLogicalPartitionsSize int32 = 0
+			currentEBR := info.FirstEBR
+			for currentEBR != nil {
+				totalLogicalPartitionsSize += currentEBR.PartSize
+				currentEBR = currentEBR.PartNext
+			}
+
+			fmt.Println("totalLogicalPartitionsSize:", totalLogicalPartitionsSize)
+			totalLogicalPartitionsSize += sizeInBytes
+
+			if totalLogicalPartitionsSize > sizeInBytesExtended {
+				return fmt.Errorf("combined size of logical partitions exceeds extended partition size")
+			}
 		}
 
 		// Assuming the logic to find space in extended and create a new EBR is encapsulated elsewhere...
@@ -274,17 +312,35 @@ func createPartition(mbr *Types.MBR, start int64, size int32, unit string, typeP
 		if info.FirstEBR == nil {
 			// Direct modification is no longer appropriate; you might need a function to update this.
 			SetFirstEBR(diskFileName, newEBR)
+			fmt.Println("First EBR set for disk", diskFileName)
 		} else {
 			// Similarly, logic to add the EBR to the chain would be encapsulated in a function
 			AddEBRToChain(diskFileName, newEBR)
+			fmt.Println("EBR added to chain for disk", diskFileName)
 		}
 
-		return nil
 	}
 
 	WriteMBR(diskFileName, *mbr)
 
 	return nil
+}
+
+func GetExtendedPartition(diskFileName string) (*Types.Partition, error) {
+	var partition Types.Partition
+	mbr, err := ReadMBR(diskFileName)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range mbr.Partitions {
+		if p.Type == [1]byte{'E'} {
+			partition = p
+			return &partition, nil
+		}
+	}
+
+	return nil, fmt.Errorf("No se encontró la partición extendida")
 }
 
 func AdjustAndCreatePartition(mbr *Types.MBR, size int32, unit, typePart, fit, name string, diskFileName string) error {
@@ -370,13 +426,19 @@ func ValidatePartitionTypeCreation(mbr *Types.MBR, partType string) error {
 	var countP, countE int
 
 	for _, partition := range mbr.Partitions {
-		switch partition.Type {
-		case [1]byte{'P'}: // Asume que 'P' representa una partición Primaria
+		// fmt.Println("Particion:", string(partition.Name[:]))
+		// fmt.Println("Type:", partition.Type[0])
+		// fmt.Printf("Debug Type: %s\n", string(partition.Type[:]))
+		switch string(partition.Type[:]) {
+		case "P": // Asume que 'P' representa una partición Primaria
 			countP++
-		case [1]byte{'E'}: // Asume que 'E' representa una partición Extendida
+		case "E": // Asume que 'E' representa una partición Extendida
 			countE++
 		}
 	}
+
+	fmt.Println("countP:", countP)
+	fmt.Println("countE:", countE)
 
 	if partType == "E" && countE > 0 {
 		return fmt.Errorf("Ya existe una partición extendida en el disco")
@@ -398,7 +460,13 @@ func ValidatePartitionsSizeAgainstDiskSize(mbr *Types.MBR, newPartitionSize int6
 
 	var totalSizePartitions int64 = 0
 	for _, partition := range mbr.Partitions {
-		totalSizePartitions += int64(partition.Size)
+		if string(partition.Type[:]) != "L" {
+			fmt.Println("partition.Type:", string(partition.Type[:]))
+			fmt.Println("partition.Size:", partition.Size)
+
+			totalSizePartitions += int64(partition.Size)
+			fmt.Println("totalSizePartitions:", totalSizePartitions)
+		}
 	}
 
 	if (totalSizePartitions + newPartitionSize) > int64(mbr.MbrTamano) {
@@ -732,4 +800,59 @@ func printMBRState(mbr *Types.MBR) {
 	for i, p := range mbr.Partitions {
 		fmt.Printf("Partición %d: %+v\n", i+1, p)
 	}
+}
+
+func PrintLogicalPartitions(info *LogicalPartitionInfo) {
+	if info == nil || info.FirstEBR == nil {
+		fmt.Println("No logical partitions found.")
+		return
+	}
+
+	currentEBR := info.FirstEBR
+	partitionNumber := 1
+
+	// Assuming 'LogicalPartitionInfo' and 'EBR' are defined with the necessary fields
+	// And 'EBR' has fields like 'Size', 'Start', and potentially 'Name' for the partition it describes
+	fmt.Println("List of Logical Partitions:")
+	for currentEBR != nil {
+		// Print details of the logical partition
+		fmt.Printf("Partition %d:\n", partitionNumber)
+		fmt.Printf("  Name: %s\n", currentEBR.PartName[:])
+		fmt.Printf("  Start: %d\n", currentEBR.PartStart)
+		fmt.Printf("  Size: %d\n", currentEBR.PartSize)
+
+		// Move to the next EBR in the chain
+		currentEBR = currentEBR.PartNext
+		partitionNumber++
+	}
+}
+
+func DeleteLogicalPartition(info *LogicalPartitionInfo, partitionName string) error {
+	if info == nil || info.FirstEBR == nil {
+		return fmt.Errorf("no logical partitions to delete")
+	}
+
+	var previousEBR *Types.EBR = nil
+	currentEBR := info.FirstEBR
+
+	// Search for the EBR corresponding to the partition to be deleted
+	for currentEBR != nil && string(currentEBR.PartName[:]) == partitionName {
+		previousEBR = currentEBR
+		currentEBR = currentEBR.PartNext
+	}
+
+	// If the partition was not found
+	if currentEBR == nil {
+		return fmt.Errorf("logical partition with name %s not found", partitionName)
+	}
+
+	// If the partition to be deleted is the first in the list
+	if previousEBR == nil {
+		info.FirstEBR = currentEBR.PartNext // Bypass the deleted partition's EBR
+	} else {
+		// If the partition is in the middle or end of the list
+		previousEBR.PartNext = currentEBR.PartNext // Bypass the deleted partition's EBR
+	}
+
+	return nil
 }
