@@ -400,17 +400,17 @@ func unmount(params []string, archivoBinarioDisco string) {
 
 func rep(diskFileName string, params []string) {
 	// Leer el MBR existente
-	fmt.Println("diskFileName:", diskFileName)
+	// fmt.Println("diskFileName:", diskFileName)
 	mbr, err := Fdisk.ReadMBR(diskFileName)
 	if err != nil {
 		fmt.Println("Error leyendo el MBR:", err)
 		return
 	}
-	Utils.LineaDoble(60)
-	fmt.Println("mbr in rep:", mbr)
-	for i, p := range mbr.Partitions {
-		fmt.Printf("Partición %d: %+v\n", i+1, p)
-	}
+	// Utils.LineaDoble(60)
+	// fmt.Println("mbr in rep:", mbr)
+	// for i, p := range mbr.Partitions {
+	// 	fmt.Printf("Partición %d: %+v\n", i+1, p)
+	// }
 
 	reportName, reportPathAndFileName, err := Rep.ExtractRepParams(params)
 
@@ -428,9 +428,9 @@ func rep(diskFileName string, params []string) {
 	var dotCode string
 	switch reportName {
 	case "mbr":
-		dotCode = Fdisk.GenerateDotCodeMbr(mbr)
-	case "disk":
-		dotCode = Fdisk.GenerateDotCodeDisk(mbr)
+		dotCode = Fdisk.GenerateDotCodeMbr(mbr, diskFileName)
+		//case "disk":
+		//	dotCode = Fdisk.GenerateDotCodeDisk(mbr)
 	}
 
 	extension := filepath.Ext(reportPathAndFileName)

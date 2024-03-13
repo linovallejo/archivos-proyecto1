@@ -486,8 +486,10 @@ func ValidateFileName(path string, filename string) (string, error) {
 	return fullPath, nil
 }
 
-func GenerateDotCodeMbr(mbr *Types.MBR) string {
+func GenerateDotCodeMbr(mbr *Types.MBR, diskFileName string) string {
 	var builder strings.Builder
+
+	mbrFechaCreacion := Utils.CleanPartitionName(mbr.MbrFechaCreacion[:])
 
 	builder.WriteString("digraph G {\n")
 	builder.WriteString("    node [shape=none];\n")
@@ -495,24 +497,180 @@ func GenerateDotCodeMbr(mbr *Types.MBR) string {
 
 	builder.WriteString("    struct1 [label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\">\n")
 
-	builder.WriteString("    <TR>")
 	// Nodo MBR
-	builder.WriteString("    <TD BGCOLOR=\"yellow\">MBR</TD>")
+	builder.WriteString("    <TR>")
+	builder.WriteString("    <TD BGCOLOR=\"#4A235A\" COLSPAN=\"2\"><FONT COLOR=\"white\">REPORTE DE MBR</FONT></TD>")
+	builder.WriteString("    </TR>\n")
+	builder.WriteString("    <TR>")
+	builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">mbr_tamano:</TD>")
+	builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">" + strconv.Itoa(int(mbr.MbrTamano)) + "</TD>")
+	builder.WriteString("    </TR>\n")
+	builder.WriteString("    <TR>")
+	builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">mbr_fecha_creacion:</TD>")
+	builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">" + mbrFechaCreacion + "</TD>")
+	builder.WriteString("    </TR>\n")
+	builder.WriteString("    <TR>")
+	builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">mbr_disk_signature:</TD>")
+	builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">" + strconv.Itoa(int(mbr.MbrDiskSignature)) + "</TD>")
+	builder.WriteString("    </TR>\n")
 
 	// Nodos de particiones
-	for i, partition := range mbr.Partitions {
-		if partition.Status != [1]byte{0} { // Asumiendo que Status != 0 significa que la partición esta disponible.
-			partitionName := Utils.CleanPartitionName(partition.Name[:])
-			if partitionName == "" {
-				partitionName = fmt.Sprintf("Partition%d", i+1)
-			}
-			builder.WriteString(fmt.Sprintf("    <TD BGCOLOR=\"green\">%s</TD>", partitionName))
+	for _, partition := range mbr.Partitions {
+		partitionName := Utils.CleanPartitionName(partition.Name[:])
+		partitionStatus := partition.Status[0]
+		partitionStatusStr := strconv.Itoa(int(partitionStatus))
+
+		if string(partition.Type[:]) == "P" || string(partition.Type[:]) == "E" {
+
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#4A235A\" COLSPAN=\"2\"><FONT COLOR=\"white\">Particion</FONT></TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">part_status:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">" + string(partitionStatusStr) + "</TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">part_type:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">" + string(partition.Type[:]) + "</TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">part_fit:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">" + string(partition.Fit[:]) + "</TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">part_start:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">" + strconv.Itoa(int(partition.Start)) + "</TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">part_size:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">" + strconv.Itoa(int(partition.Size)) + "</TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">part_name:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">" + partitionName + "</TD>")
+			builder.WriteString("    </TR>\n")
 		}
 	}
 
-	builder.WriteString("</TR>\n")
+	logicalPartitions, _ := GetLogicalPartition(diskFileName)
+	if logicalPartitions != nil {
+
+		currentEBR := logicalPartitions.FirstEBR
+		partitionNumber := 1
+
+		for currentEBR != nil {
+
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#4A235A\" COLSPAN=\"2\"><FONT COLOR=\"white\">Particion Logica</FONT></TD>")
+			builder.WriteString("    </TR>\n")
+
+			partitionName := Utils.CleanPartitionName(currentEBR.PartName[:])
+			partNextStr := "-1"
+			if currentEBR.PartNext != nil {
+				partNextStr = fmt.Sprintf("%p", currentEBR.PartNext) // %p formats as a pointer (base 16 notation)
+			}
+
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">part_status:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">0</TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">part_next:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">" + partNextStr + "</TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">part_type:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">L</TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">part_fit:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">" + string(currentEBR.PartFit[:]) + "</TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">part_start:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">" + strconv.Itoa(int(currentEBR.PartStart)) + "</TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">part_size:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">" + strconv.Itoa(int(currentEBR.PartSize)) + "</TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">part_name:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">" + partitionName + "</TD>")
+			builder.WriteString("    </TR>\n")
+
+			// Move to the next EBR in the chain
+			currentEBR = currentEBR.PartNext
+			partitionNumber++
+		}
+	}
 
 	builder.WriteString("    </TABLE>>];\n")
+
+	//EBR Section
+
+	if logicalPartitions != nil {
+		builder.WriteString("    struct2 [label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\">\n")
+
+		// Nodo MBR
+		builder.WriteString("    <TR>")
+		builder.WriteString("    <TD BGCOLOR=\"#4A235A\" COLSPAN=\"2\"><FONT COLOR=\"white\">EBR</FONT></TD>")
+		builder.WriteString("    </TR>\n")
+
+		currentEBR := logicalPartitions.FirstEBR
+		partitionNumber := 1
+
+		for currentEBR != nil {
+
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#4A235A\" COLSPAN=\"2\"><FONT COLOR=\"white\">Particion</FONT></TD>")
+			builder.WriteString("    </TR>\n")
+
+			partitionName := Utils.CleanPartitionName(currentEBR.PartName[:])
+			partNextStr := "-1"
+			if currentEBR.PartNext != nil {
+				partNextStr = fmt.Sprintf("%p", currentEBR.PartNext) // %p formats as a pointer (base 16 notation)
+			}
+
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">part_status:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">0</TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">part_next:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">" + partNextStr + "</TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">part_type:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">L</TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">part_fit:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#FFFFFF\">" + string(currentEBR.PartFit[:]) + "</TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">part_start:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">" + strconv.Itoa(int(currentEBR.PartStart)) + "</TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">part_size:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">" + strconv.Itoa(int(currentEBR.PartSize)) + "</TD>")
+			builder.WriteString("    </TR>\n")
+			builder.WriteString("    <TR>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">part_name:</TD>")
+			builder.WriteString("    <TD BGCOLOR=\"#E8DAEF\">" + partitionName + "</TD>")
+			builder.WriteString("    </TR>\n")
+
+			// Move to the next EBR in the chain
+			currentEBR = currentEBR.PartNext
+			partitionNumber++
+		}
+
+		builder.WriteString("    </TABLE>>];\n")
+
+		builder.WriteString("    struct1 -> struct2 [style=invis];\n")
+
+	}
 
 	builder.WriteString("}\n")
 

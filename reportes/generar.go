@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 func CrearArchivo(nombre_archivo string) {
@@ -36,11 +37,13 @@ func EscribirArchivo(contenido string, nombre_archivo string) {
 }
 
 func Ejecutar(nombre_imagen string, archivo string, extension string) {
+	var newExtension string = strings.TrimPrefix(extension, ".")
 	path, _ := exec.LookPath("dot")
-	cmd, _ := exec.Command(path, "-Tjpg", archivo).Output()
+	var fileFormat string = "-T" + newExtension
+	cmd, _ := exec.Command(path, fileFormat, archivo).Output()
 	mode := 0777
 	_ = os.WriteFile(nombre_imagen, cmd, os.FileMode(mode))
-	//dot ejemplo.dot -Tjpg ejemplo.jpg -o
+	//dot ejemplo.dot -Tpdf ejemplo.pdf -o
 }
 
 func VerReporte(nombre_imagen string) {

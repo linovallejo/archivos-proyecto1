@@ -68,13 +68,21 @@ fdisk -size=15 -unit=M  -driveletter=A -name=Primaria1 -type=P -fit=BF
 
 
 #logicas
-fdisk -size=9 -unit=M  -driveletter=A -name=Extendida1 -type=E -fit=BF
-fdisk -size=5 -unit=M  -driveletter=A -name=Logica1 -type=L -fit=BF
+#fdisk -size=9 -unit=M  -driveletter=A -name=Extendida1 -type=E -fit=BF
+#fdisk -size=5 -unit=M  -driveletter=A -name=Logica1 -type=L -fit=BF
 #fdisk -size=2 -unit=M  -driveletter=A -name=Logica2 -type=L -fit=BF
 #fdisk -size=8 -unit=M  -driveletter=A -name=Logica2 -type=L -fit=BF
 #fdisk -delete=full -driveletter=A -name=Primaria1
 #fdisk -delete=full -driveletter=A -name=Extendida1
-fdisk -delete=full -driveletter=A -name=Logica1
+#fdisk -delete=full -driveletter=A -name=Logica1
+
+#rep mbr
+mount -driveletter=A -name=Primaria1
+fdisk -size=2 -unit=M  -driveletter=A -name=Primaria2 -type=P -fit=BF
+fdisk -size=6 -unit=M  -driveletter=A -name=Extendida1 -type=E -fit=BF
+fdisk -size=3 -unit=M  -driveletter=A -name=Logica1 -type=L -fit=BF
+fdisk -size=1 -unit=M  -driveletter=A -name=Logica2 -type=L -fit=BF
+rep -name=mbr -path=.\reportes\mbr2.pdf
 
 
 rmdisk -driveletter=A
