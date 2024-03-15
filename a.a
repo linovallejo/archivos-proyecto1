@@ -86,10 +86,11 @@ fdisk -size=15 -unit=M  -driveletter=A -name=Primaria1 -type=P -fit=BF
 
 
 #mkfs
-mount -driveletter=A -name=Primaria1
+#mount -driveletter=A -name=Primaria1
 #fdisk -size=3 -unit=M  -driveletter=A -name=Primaria2 -type=P -fit=BF
-mkfs -type=full -id=A123
-rep -id=A123 -name=tree -path=.\reportes\mbr
+#mkfs -type=full -id=A123
+#rep -id=A123 -name=tree -path=.\reportes\mbr
+#pause
 
-rmdisk -driveletter=A
+#rmdisk -driveletter=A
 
