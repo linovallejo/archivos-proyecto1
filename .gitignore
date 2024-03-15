@@ -27,3 +27,4 @@ go.work
 *.pdf
 *.txt
 launch.json
+.vscode

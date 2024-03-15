@@ -221,3 +221,14 @@ func ValidatePartitionId(mbr *Types.MBR, id string) (string, error) {
 	}
 	return partitionId, nil
 }
+
+func GetPartitionStart(mbr *Types.MBR, id string) (int32, error) {
+	var partitionStart int32 = 0
+	for i := 0; i < 4; i++ {
+		if strings.Contains(string(mbr.Partitions[i].Id[:]), id) {
+			partitionStart = mbr.Partitions[i].Start
+			break
+		}
+	}
+	return partitionStart, nil
+}

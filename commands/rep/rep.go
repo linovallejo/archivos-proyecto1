@@ -16,25 +16,30 @@ func isValidReportName(name string) bool {
 	return false
 }
 
-func ExtractRepParams(params []string) (string, string, error) {
+func ExtractRepParams(params []string) (string, string, string, error) {
+	var id string = ""
 	var name string = ""
 	var path string = ""
 
 	for _, param := range params {
-		if strings.HasPrefix(param, "-name=") {
+		if strings.HasPrefix(param, "-id=") {
+			id = strings.TrimPrefix(param, "-id=")
+			// Validar el id de la partición
+			// TODO
+		} else if strings.HasPrefix(param, "-name=") {
 			name = strings.TrimPrefix(param, "-name=")
 			if !isValidReportName(name) {
-				return "", "", fmt.Errorf("Parametro nombre de reporte invalido")
+				return "", "", "", fmt.Errorf("Parametro nombre de reporte invalido")
 			}
 		} else if strings.HasPrefix(param, "-path=") {
 			path = strings.TrimPrefix(param, "-path=")
 			trimmedPath := strings.Trim(path, "\"")
 
 			if err := Utils.EnsurePathExists(trimmedPath); err != nil {
-				return "", "", err
+				return "", "", "", err
 			}
 		}
 	}
 
-	return name, path, nil
+	return id, name, path, nil
 }

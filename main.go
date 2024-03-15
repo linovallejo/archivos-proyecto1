@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	Fdisk "proyecto1/commands/fdisk"
 	Mkdisk "proyecto1/commands/mkdisk"
+	Mkfs "proyecto1/commands/mkfs"
 	Mount "proyecto1/commands/mount"
 	Rep "proyecto1/commands/rep"
 	Rmdisk "proyecto1/commands/rmdisk"
@@ -138,6 +139,29 @@ func main() {
 		case strings.HasPrefix(command, "pause"):
 			fmt.Println("Presione cualquier tecla para continuar...")
 			fmt.Scanln()
+		case strings.HasPrefix(command, "mkfs"):
+			params := strings.Fields(command)
+
+			fmt.Println("antes del mkfs")
+			var TempMBR2 *Types.MBR
+			TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+			if err != nil {
+				fmt.Println("Error leyendo el MBR:", err)
+				return
+			}
+			Utils.PrintMBRv3(TempMBR2)
+
+			mkfs(params[1:], archivoBinarioDiscoActual)
+
+			fmt.Println("despues del mkfs")
+			var TempMBR3 *Types.MBR
+			TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+			if err != nil {
+				fmt.Println("Error leyendo el MBR:", err)
+				return
+			}
+			Utils.PrintMBRv3(TempMBR3)
+
 		}
 	}
 	//Rmdisk.RemoveDisk(archivoBinarioDiscoActual)
@@ -398,6 +422,39 @@ func unmount(params []string, archivoBinarioDisco string) {
 	}
 }
 
+func mkfs(params []string, archivoBinarioDisco string) {
+	id, type_, fs, err := Mkfs.ExtractMkfsParams(params)
+	if err != nil {
+		fmt.Println("Error al procesar los parámetros MKFS:", err)
+	}
+
+	// Leer el MBR existente
+	mbr, err := Fdisk.ReadMBR(archivoBinarioDisco)
+	if err != nil {
+		fmt.Println("Error leyendo el MBR:", err)
+		return
+	}
+
+	fmt.Println("mbr in mkfs:", mbr)
+	fmt.Println("id:", id)
+
+	_, err = Mount.ValidatePartitionId(mbr, id)
+	if err != nil {
+		fmt.Println(err)
+		return
+	} else {
+		fmt.Println("Partición encontrada.")
+	}
+
+	err = Mkfs.MakeFileSystem(archivoBinarioDisco, id, type_, fs)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("Sistema de archivos creado exitosamente.")
+
+	}
+}
+
 func rep(diskFileName string, params []string) {
 	// Leer el MBR existente
 	// fmt.Println("diskFileName:", diskFileName)
@@ -412,7 +469,7 @@ func rep(diskFileName string, params []string) {
 	// 	fmt.Printf("Partición %d: %+v\n", i+1, p)
 	// }
 
-	reportName, reportPathAndFileName, err := Rep.ExtractRepParams(params)
+	id, reportName, reportPathAndFileName, err := Rep.ExtractRepParams(params)
 
 	if err != nil {
 		fmt.Println("Error al procesar los parámetros REP:", err)
@@ -429,8 +486,38 @@ func rep(diskFileName string, params []string) {
 	switch reportName {
 	case "mbr":
 		dotCode = Fdisk.GenerateDotCodeMbr(mbr, diskFileName)
-		//case "disk":
-		//	dotCode = Fdisk.GenerateDotCodeDisk(mbr)
+	case "disk":
+		dotCode = Fdisk.GenerateDotCodeDisk(mbr)
+	case "tree":
+		// Leer el MBR existente
+		mbr, err := Fdisk.ReadMBR(diskFileName)
+		if err != nil {
+			fmt.Println("Error leyendo el MBR:", err)
+			return
+		}
+
+		fmt.Println("mbr in rep:", mbr)
+		fmt.Println("id:", id)
+
+		_, err = Mount.ValidatePartitionId(mbr, id)
+		if err != nil {
+			fmt.Println(err)
+			return
+		} else {
+			fmt.Println("Partición encontrada.")
+		}
+
+		var partitionStart int32 = 0
+		partitionStart, err = Mount.GetPartitionStart(mbr, id)
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		} else {
+			fmt.Println("Start:", partitionStart)
+		}
+
+		//dotCode = Mkfs.GenerateDotCodeTree()
 	}
 
 	extension := filepath.Ext(reportPathAndFileName)

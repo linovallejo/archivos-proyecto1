@@ -1,5 +1,6 @@
 package types
 
-type FileBlockContent struct {
-	b_pointers [16]int
+type Content struct {
+	B_name  [64]byte
+	B_inodo int32
 }
