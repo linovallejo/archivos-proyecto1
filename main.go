@@ -57,8 +57,10 @@ func main() {
 		if command == "" || strings.HasPrefix(command, "#") {
 			continue
 		}
+		var commandLower string = strings.ToLower(command)
+
 		switch {
-		case strings.HasPrefix(command, "mkdisk"):
+		case strings.HasPrefix(commandLower, "mkdisk"):
 			params := strings.Fields(command)
 			archivoBinarioDiscoActual = mkdisk(params[1:])
 
@@ -71,7 +73,7 @@ func main() {
 			}
 
 			Utils.PrintMBRv3(TempMBR2)
-		case strings.HasPrefix(command, "fdisk"):
+		case strings.HasPrefix(commandLower, "fdisk"):
 			params := strings.Fields(command)
 
 			fmt.Println("antes del fdisk")
@@ -97,7 +99,7 @@ func main() {
 			logicalPartitions, _ := Fdisk.GetLogicalPartition(archivoBinarioDiscoActual)
 			Fdisk.PrintLogicalPartitions(logicalPartitions)
 
-		case strings.HasPrefix(command, "rmdisk"):
+		case strings.HasPrefix(commandLower, "rmdisk"):
 			// fmt.Println("¿Está seguro de que desea eliminar el disco? [s/N]:")
 			// var response string
 			// _, err := fmt.Scanln(&response)
@@ -108,7 +110,7 @@ func main() {
 
 			params := strings.Fields(command)
 			rmdisk(params[1:])
-		case strings.HasPrefix(command, "mount"):
+		case strings.HasPrefix(commandLower, "mount"):
 			params := strings.Fields(command)
 
 			fmt.Println("antes del mount")
@@ -130,16 +132,16 @@ func main() {
 				return
 			}
 			Utils.PrintMBRv3(TempMBR3)
-		case strings.HasPrefix(command, "unmount"):
+		case strings.HasPrefix(commandLower, "unmount"):
 			params := strings.Fields(command)
 			unmount(params[1:], archivoBinarioDiscoActual)
-		case strings.HasPrefix(command, "rep"):
+		case strings.HasPrefix(commandLower, "rep"):
 			params := strings.Fields(command)
 			rep(archivoBinarioDiscoActual, params[1:])
-		case strings.HasPrefix(command, "pause"):
+		case strings.HasPrefix(commandLower, "pause"):
 			fmt.Println("Presione cualquier tecla para continuar...")
 			fmt.Scanln()
-		case strings.HasPrefix(command, "mkfs"):
+		case strings.HasPrefix(commandLower, "mkfs"):
 			params := strings.Fields(command)
 
 			fmt.Println("antes del mkfs")
@@ -516,6 +518,30 @@ func rep(diskFileName string, params []string) {
 		} else {
 			fmt.Println("Start:", partitionStart)
 		}
+
+		superblock, err := Mkfs.ReadSuperBlock(diskFileName, partitionStart)
+		if err != nil {
+			fmt.Println("Error reading superblock:", err)
+			return
+		}
+
+		fmt.Println("Superblock:", superblock)
+
+		inodes, err := Mkfs.ReadInodesFromFile(diskFileName, superblock)
+		if err != nil {
+			fmt.Println("Error reading inodes:", err)
+			return
+		}
+
+		directoryBlocks, err := Mkfs.ReadDirectoryBlocksFromFile(diskFileName, superblock)
+		if err != nil {
+			fmt.Println("Error reading directory blocks:", err)
+			return
+		}
+
+		fmt.Println("Inodes:", inodes)
+
+		fmt.Println("Directory Blocks:", directoryBlocks)
 
 		//dotCode = Mkfs.GenerateDotCodeTree()
 	}

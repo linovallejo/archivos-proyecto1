@@ -3,6 +3,7 @@ package FileSystem
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 	"os"
 	Fdisk "proyecto1/commands/fdisk"
 	Types "proyecto1/types"
@@ -97,7 +98,6 @@ func MakeFileSystem(diskFileName string, id string, type_ string, fs_ string) er
 					index = i
 				} else {
 					//fmt.Println("Partition is not mounted")
-					//defer file.Close()
 					return fmt.Errorf("Partition is not mounted")
 				}
 				break
@@ -109,7 +109,6 @@ func MakeFileSystem(diskFileName string, id string, type_ string, fs_ string) er
 		PrintPartition(TempMBR.Partitions[index])
 	} else {
 		//fmt.Println("Partition not found")
-		//defer file.Close()
 		return fmt.Errorf("Partition not found")
 	}
 
@@ -140,25 +139,96 @@ func MakeFileSystem(diskFileName string, id string, type_ string, fs_ string) er
 	copy(newSuperblock.S_umtime[:], today)
 	newSuperblock.S_mnt_count = 0
 
+	//fmt.Println("create_ext2 not invoked")
 	if fs_ == "2fs" {
 		file, err := Utilities.AbrirArchivo(diskFileName)
 		if err != nil {
+			defer file.Close()
 			return err
 		}
+
+		// file, err := os.Open(diskFileName)
+		// if err != nil {
+		// 	defer file.Close()
+		// 	return err
+		// }
+
+		//var file *os.File
 		err = create_ext2(n, TempMBR.Partitions[index], newSuperblock, today, file)
 		if err != nil {
+			defer file.Close()
 			return err
 		}
 	} else {
 		fmt.Println("EXT3")
 	}
 
-	// Close bin file
+	//Close bin file
 	//defer file.Close()
 
 	fmt.Println("======End MKFS======")
 
 	return nil
+}
+
+func setupSuperblock(superblock *Types.SuperBlock, partition Types.Partition, inodesCount int32) error {
+	if inodesCount <= 0 {
+		return fmt.Errorf("inodesCount must be positive")
+	}
+
+	superblock.S_filesystem_type = 2
+	superblock.S_bm_inode_start = partition.Start + int32(binary.Size(Types.SuperBlock{}))
+	superblock.S_bm_block_start = superblock.S_bm_inode_start + inodesCount
+
+	if superblock.S_bm_block_start >= partition.Size {
+		return fmt.Errorf("block bitmap start position is outside of the partition")
+	}
+
+	superblock.S_inode_start = superblock.S_bm_block_start + 3*inodesCount
+
+	if superblock.S_inode_start >= partition.Size {
+		return fmt.Errorf("inode start position is outside of the partition")
+	}
+
+	superblock.S_block_start = superblock.S_inode_start + inodesCount*int32(binary.Size(Types.Inode{}))
+
+	if superblock.S_block_start >= partition.Size {
+		return fmt.Errorf("block start position is outside of the partition")
+	}
+
+	if superblock.S_free_inodes_count <= 0 || superblock.S_free_blocks_count <= 0 {
+		return fmt.Errorf("free inodes or blocks count is already zero or negative")
+	}
+
+	superblock.S_free_inodes_count -= 1
+	superblock.S_free_blocks_count -= 1
+
+	return nil
+}
+
+func createRootInode(date string) (Types.Inode, error) {
+	var inode Types.Inode
+	inode.I_uid = 1
+	inode.I_gid = 1
+	inode.I_size = 0
+	if len(date) > len(inode.I_atime) {
+		return Types.Inode{}, fmt.Errorf("date string too long for inode timestamp fields")
+	}
+	copy(inode.I_atime[:], date)
+	copy(inode.I_ctime[:], date)
+	copy(inode.I_mtime[:], date)
+	// Assuming "664" is the correct permission setting
+	copy(inode.I_perm[:], "664")
+
+	for i := range inode.I_block {
+		inode.I_block[i] = -1
+	}
+
+	// Validate or correct this according to your filesystem's block numbering scheme
+	inode.I_block[0] = 0
+
+	// Add any additional validation or setup as needed
+	return inode, nil
 }
 
 func create_ext2(inodesCount int32, partition Types.Partition, newSuperblock Types.SuperBlock, date string, file *os.File) error {
@@ -167,14 +237,14 @@ func create_ext2(inodesCount int32, partition Types.Partition, newSuperblock Typ
 	fmt.Println("Superblock:", newSuperblock)
 	fmt.Println("Date:", date)
 
-	newSuperblock.S_filesystem_type = 2
-	newSuperblock.S_bm_inode_start = partition.Start + int32(binary.Size(Types.SuperBlock{}))
-	newSuperblock.S_bm_block_start = newSuperblock.S_bm_inode_start + inodesCount
-	newSuperblock.S_inode_start = newSuperblock.S_bm_block_start + 3*inodesCount
-	newSuperblock.S_block_start = newSuperblock.S_inode_start + inodesCount*int32(binary.Size(Types.Inode{}))
+	err := setupSuperblock(&newSuperblock, partition, inodesCount)
+	if err != nil {
+		fmt.Println("Error setting up superblock:", err)
+		return err
+	}
 
-	newSuperblock.S_free_inodes_count -= 1
-	newSuperblock.S_free_blocks_count -= 1
+	fmt.Println("Superblock:", newSuperblock)
+	fmt.Println("inodesCount:", inodesCount)
 
 	for i := int32(0); i < inodesCount; i++ {
 		err := Utilities.WriteObject(file, byte(0), int64(newSuperblock.S_bm_inode_start+i))
@@ -210,26 +280,16 @@ func create_ext2(inodesCount int32, partition Types.Partition, newSuperblock Typ
 		}
 	}
 
-	var Inode0 Types.Inode //Inode 0
-	Inode0.I_uid = 1
-	Inode0.I_gid = 1
-	Inode0.I_size = 0
-	copy(Inode0.I_atime[:], date)
-	copy(Inode0.I_ctime[:], date)
-	copy(Inode0.I_mtime[:], date)
-	copy(Inode0.I_perm[:], "0")
-	copy(Inode0.I_perm[:], "664")
-
-	for i := int32(0); i < 15; i++ {
-		Inode0.I_block[i] = -1
+	Inode0, err := createRootInode(date)
+	if err != nil {
+		fmt.Println("Error creating root inode:", err)
+		return err
 	}
 
-	Inode0.I_block[0] = 0
-
-	// . | 0
-	// .. | 0
-	// users.txt | 1
-	//
+	// // . | 0
+	// // .. | 0
+	// // users.txt | 1
+	// //
 
 	var Folderblock0 Types.DirectoryBlock //Bloque 0 -> carpetas
 	Folderblock0.B_content[0].B_inodo = 0
@@ -259,11 +319,10 @@ func create_ext2(inodesCount int32, partition Types.Partition, newSuperblock Typ
 	var Fileblock1 Types.FileBlock //Bloque 1 -> archivo
 	copy(Fileblock1.B_content[:], data)
 
-	// Inodo 0 -> Bloque 0 -> Inodo 1 -> Bloque 1
-	// Crear la carpeta raiz /
-	// Crear el archivo users.txt "1,G,root\n1,U,root,root,123\n"
+	// // Inodo 0 -> Bloque 0 -> Inodo 1 -> Bloque 1
+	// // Crear la carpeta raiz /
+	// // Crear el archivo users.txt "1,G,root\n1,U,root,root,123\n"
 
-	var err error
 	// write superblock
 	err = Utilities.WriteObject(file, newSuperblock, int64(partition.Start))
 	if err != nil {
@@ -314,6 +373,9 @@ func create_ext2(inodesCount int32, partition Types.Partition, newSuperblock Typ
 		return err
 	}
 
+	fmt.Println("======End CREATE EXT2======")
+	fmt.Println("Superblock:", newSuperblock)
+	fmt.Println("inodesCount:", inodesCount)
 	fmt.Println("======End CREATE EXT2======")
 
 	return nil
@@ -366,6 +428,84 @@ func GenerateDotCodeTree(inodes []Types.Inode, blocks []Types.DirectoryBlock) st
 	builder.WriteString("}\n")
 
 	return builder.String()
+}
+
+// Read the superblock from the file to find out where inodes and blocks start.
+func ReadSuperBlock(filePath string, partitionStart int32) (Types.SuperBlock, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return Types.SuperBlock{}, err
+	}
+	defer file.Close()
+
+	// Seek to the start of the partition to read the superblock
+	_, err = file.Seek(int64(partitionStart), io.SeekStart)
+	if err != nil {
+		return Types.SuperBlock{}, err
+	}
+
+	var superblock Types.SuperBlock
+	err = binary.Read(file, binary.LittleEndian, &superblock)
+	if err != nil {
+		return Types.SuperBlock{}, err
+	}
+
+	return superblock, nil
+}
+
+func ReadInodesFromFile(filePath string, superblock Types.SuperBlock) ([]Types.Inode, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		defer file.Close()
+		return nil, err
+	}
+	defer file.Close()
+
+	// Seek to the inode start
+	_, err = file.Seek(int64(superblock.S_inode_start), io.SeekStart)
+	if err != nil {
+		return nil, err
+	}
+
+	numInodes := superblock.S_inodes_count
+	inodes := make([]Types.Inode, numInodes)
+	for i := int32(0); i < numInodes; i++ {
+		inode := Types.Inode{}
+		err = binary.Read(file, binary.LittleEndian, &inode)
+		if err != nil {
+			return nil, err
+		}
+		inodes[i] = inode
+	}
+
+	return inodes, nil
+}
+
+func ReadDirectoryBlocksFromFile(filePath string, superblock Types.SuperBlock) ([]Types.DirectoryBlock, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	// Seek to the block start
+	_, err = file.Seek(int64(superblock.S_block_start), io.SeekStart)
+	if err != nil {
+		return nil, err
+	}
+
+	// Assuming only one block for the root directory
+	blocks := make([]Types.DirectoryBlock, 1)
+	for i := range blocks {
+		block := Types.DirectoryBlock{}
+		err = binary.Read(file, binary.LittleEndian, &block)
+		if err != nil {
+			return nil, err
+		}
+		blocks[i] = block
+	}
+
+	return blocks, nil
 }
 
 func PrintMBR(data Types.MBR) {

@@ -1,0 +1,26 @@
+Mkdisk -size=50 -unit=M -fit=FF                   
+Mkdisk -unit=K -size=51200 -fit=BF                # 50M B
+mkDisk -size=14                                   # 13M C
+mkdisk -size=51200 -unit=K                        # 50M D
+mkDisk -size=20 -unit=M -fit=WF                   # 20M E
+Mkdisk -size=50 -unit=M -fit=FF                   # 50M F X
+Mkdisk -size=50 -unit=M -fit=FF                   # 50M G X
+mkdisk -size=51200 -unit=K                        # 50M H X
+mkdisk -size=51200 -unit=K                        # 50M I X
+
+#ELIMINACION DE DISCOS---------------------------------------------------
+rmdisk -driveletter=Z #ERR RUTA NO ENCONTRADA
+rmdisk -driveletter=F
+rmdisk -driveletter=G
+rmdisk -driveletter=H
+rmdisk -driveletter=I
+
+#CREACION DE PARTICIONES---------------------------------------------------
+#DISCO 1
+fdisk -type=P -unit=b -name=Part0 -size=10485760 -driveletter=Z -fit=BF # ERR RUTA NO ENCONTRADA
+fdisk -type=P -unit=b -name=Part1 -size=10485760 -driveletter=A -fit=BF # 10M
+fdisk -type=P -unit=k -name=Part2 -size=10240 -driveletter=A -fit=BF    # 10M
+fdisk -type=P -unit=M -name=Part3 -size=10 -driveletter=A -fit=BF       # 10M
+fdisk -type=P -unit=b -name=Part4 -size=10485760 -driveletter=A -fit=BF # 10M
+fdisk -type=P -unit=b -name=Part5 -size=10485760 -driveletter=A -fit=BF #ERR PARTICION 5
+# LIBRE DISCO 1: 50-4*10 = 10 -> 20%
