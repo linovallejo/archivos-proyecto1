@@ -454,6 +454,39 @@ func mkfs(params []string, archivoBinarioDisco string) {
 	} else {
 		fmt.Println("Sistema de archivos creado exitosamente.")
 
+		var partitionStart int32 = 0
+		partitionStart, err = Mount.GetPartitionStart(mbr, id)
+		if err != nil {
+			fmt.Println("Error getting partition start:", err)
+			return
+		} else {
+			fmt.Println("Partition start:", partitionStart)
+		}
+
+		superblock, err := Mkfs.ReadSuperBlock(archivoBinarioDisco, partitionStart)
+		if err != nil {
+			fmt.Println("Error reading superblock:", err)
+			return
+		}
+
+		fmt.Println("Superblock:", superblock)
+
+		inodes, err := Mkfs.ReadInodesFromFile(archivoBinarioDisco, superblock)
+		if err != nil {
+			fmt.Println("Error reading inodes:", err)
+			return
+		}
+
+		fmt.Println("Inodes:", inodes[0])
+
+		directoryBlocks, err := Mkfs.ReadDirectoryBlocksFromFile(archivoBinarioDisco, superblock)
+		if err != nil {
+			fmt.Println("Error reading directory blocks:", err)
+			return
+		}
+
+		fmt.Println("Directory Blocks:", directoryBlocks)
+
 	}
 }
 
@@ -525,7 +558,7 @@ func rep(diskFileName string, params []string) {
 			return
 		}
 
-		fmt.Println("Superblock:", superblock)
+		fmt.Println("Superblock in rep:", superblock)
 
 		inodes, err := Mkfs.ReadInodesFromFile(diskFileName, superblock)
 		if err != nil {
@@ -539,11 +572,13 @@ func rep(diskFileName string, params []string) {
 			return
 		}
 
-		fmt.Println("Inodes:", inodes)
+		fmt.Println("Inodes[0] in rep:", inodes[0])
 
-		fmt.Println("Directory Blocks:", directoryBlocks)
+		fmt.Println("Directory Blocks in rep:", directoryBlocks)
 
-		//dotCode = Mkfs.GenerateDotCodeTree()
+		dotCode = Mkfs.GenerateDotCodeTree(inodes, directoryBlocks)
+
+		//fmt.Println("Dot Code:", dotCode)
 	}
 
 	extension := filepath.Ext(reportPathAndFileName)

@@ -1,4 +1,4 @@
-package FileSystem
+package Mkfs
 
 import (
 	"encoding/binary"
@@ -202,6 +202,10 @@ func setupSuperblock(superblock *Types.SuperBlock, partition Types.Partition, in
 
 	superblock.S_free_inodes_count -= 1
 	superblock.S_free_blocks_count -= 1
+	superblock.S_free_inodes_count -= 1
+	superblock.S_free_blocks_count -= 1
+
+	superblock.S_inodes_count = inodesCount
 
 	return nil
 }
@@ -391,13 +395,23 @@ func GenerateDotCodeTree(inodes []Types.Inode, blocks []Types.DirectoryBlock) st
 
 	// Iterate over inodes
 	for i, inode := range inodes {
-		builder.WriteString(fmt.Sprintf("\tInodo%d [label=\"{Inodo %d", i, i))
-		for b, blockNum := range inode.I_block {
+		hasValidBlock := false // Flag to track if the inode has a valid block
+		for _, blockNum := range inode.I_block {
 			if blockNum != -1 {
-				builder.WriteString(fmt.Sprintf("|<f%d> AD%d", b, blockNum))
+				hasValidBlock = true
+				break // No need to check further blocks
 			}
 		}
-		builder.WriteString("}\"];\n")
+
+		if hasValidBlock { // Only output inodes with valid blocks
+			builder.WriteString(fmt.Sprintf("\tInodo%d [label=\"{Inodo %d", i, i))
+			for b, blockNum := range inode.I_block {
+				if blockNum != -1 {
+					builder.WriteString(fmt.Sprintf("|<f%d> AD%d", b, blockNum))
+				}
+			}
+			builder.WriteString("}\"];\n")
+		}
 	}
 
 	// Iterate over blocks
@@ -461,13 +475,18 @@ func ReadInodesFromFile(filePath string, superblock Types.SuperBlock) ([]Types.I
 	}
 	defer file.Close()
 
+	fmt.Println("ReadInodesFromFile.Superblock:", superblock)
+
 	// Seek to the inode start
 	_, err = file.Seek(int64(superblock.S_inode_start), io.SeekStart)
 	if err != nil {
 		return nil, err
+	} else {
+		fmt.Println("ReadInodesFromFile.Inode start:", superblock.S_inode_start)
 	}
 
 	numInodes := superblock.S_inodes_count
+	fmt.Println("ReadInodesFromFile.numInodes:", numInodes)
 	inodes := make([]Types.Inode, numInodes)
 	for i := int32(0); i < numInodes; i++ {
 		inode := Types.Inode{}
