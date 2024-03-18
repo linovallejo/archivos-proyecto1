@@ -141,3 +141,18 @@ func generateDiskSignature() (signature int32) {
 	signature = generator.Int31()
 	return
 }
+
+func CalcularEspacioLibreDisco(mbr *Types.MBR) int32 {
+	espacioTotal := mbr.MbrTamano
+	espacioUsado := int32(0)
+
+	for _, partition := range mbr.Partitions {
+		// Sumar el tamaño de las particiones asignadas al espacio usado
+		if partition.Status[0] == 0 || partition.Status[0] == 1 { // Asume que el status '0' significa no asignado
+			espacioUsado += partition.Size
+		}
+	}
+
+	espacioLibre := espacioTotal - espacioUsado
+	return espacioLibre
+}
