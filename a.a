@@ -127,18 +127,30 @@ fdisk -size=15 -unit=M  -driveletter=A -name=Primaria1 -type=P -fit=BF
 #fdisk -size=1 -unit=M -driveletter=A -name=Extendida1 -type=E -fit=BF
 #mount -driveletter=A -name=Extendida1
 
-#P1 M 15, P2 0, P3 M 5, P4 0 = OK
-mount -driveletter=A -name=Primaria1
-fdisk -size=6 -unit=M -driveletter=A -name=Extendida1 -type=E -fit=BF
-mount -driveletter=A -name=Extendida1
-fdisk -size=2 -unit=M  -driveletter=A -name=Primaria2 -type=P -fit=BF
-mount -driveletter=A -name=Primaria2
-fdisk -size=2 -unit=M  -driveletter=A -name=Primaria3 -type=P -fit=BF
-mount -driveletter=A -name=Primaria3
-fdisk -size=3 -unit=M  -driveletter=A -name=Logica1 -type=L -fit=BF
-fdisk -size=2 -unit=M  -driveletter=A -name=Logica2 -type=L -fit=BF
+#P1 M 15, E1 M 6 (L1 3, L2 2), P2 M 2, P3 M 1 = OK
+#mount -driveletter=A -name=Primaria1
+#fdisk -size=6 -unit=M -driveletter=A -name=Extendida1 -type=E -fit=BF
+#mount -driveletter=A -name=Extendida1
+#fdisk -size=2 -unit=M  -driveletter=A -name=Primaria2 -type=P -fit=BF
+#mount -driveletter=A -name=Primaria2
+#fdisk -size=2 -unit=M  -driveletter=A -name=Primaria3 -type=P -fit=BF
+#mount -driveletter=A -name=Primaria3
+#fdisk -size=3 -unit=M  -driveletter=A -name=Logica1 -type=L -fit=BF
+#fdisk -size=2 -unit=M  -driveletter=A -name=Logica2 -type=L -fit=BF
 
-rep -name=disk -path=.\reportes\disk1.pdf
+#P1 M 15, E1 M 6 (L1 3, L2 2), P2 M 2, P3 M 1, delete = OK
+#mount -driveletter=A -name=Primaria1
+#fdisk -size=6 -unit=M -driveletter=A -name=Extendida1 -type=E -fit=BF
+#mount -driveletter=A -name=Extendida1
+#fdisk -size=2 -unit=M  -driveletter=A -name=Primaria2 -type=P -fit=BF
+#mount -driveletter=A -name=Primaria2
+#fdisk -size=2 -unit=M  -driveletter=A -name=Primaria3 -type=P -fit=BF
+#mount -driveletter=A -name=Primaria3
+#fdisk -size=3 -unit=M  -driveletter=A -name=Logica1 -type=L -fit=BF
+#fdisk -size=2 -unit=M  -driveletter=A -name=Logica2 -type=L -fit=BF
+#rep -name=disk -path=.\reportes\disk1.pdf
+#fdisk -delete=full -driveletter=A -name=Primaria3
+#rep -name=disk -path=.\reportes\disk2.pdf
 
 #rmdisk -driveletter=A
 

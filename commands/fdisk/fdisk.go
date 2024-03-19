@@ -719,7 +719,7 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) string {
 			if espacioLibre > 0 {
 				porcentajeLibre = int32((100 * espacioLibre) / espacioTotalDisco)
 				if porcentajeLibre > 0 {
-					dot.WriteString(fmt.Sprintf("<td>%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", "Libre", porcentajeLibre))
+					dot.WriteString(fmt.Sprintf("<td rowspan=\"2\">%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", "Libre", porcentajeLibre))
 				}
 			}
 			espacioOcupado += partition.Size
@@ -767,11 +767,6 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) string {
 			}
 		}
 	}
-	if dotLogicalPartitions.String() != "" {
-		dot.WriteString("</tr>\n")
-		dot.WriteString("<tr>\n")
-		dot.WriteString(dotLogicalPartitions.String())
-	}
 
 	espacioLibre = espacioTotalDisco - espacioOcupado - espacioLibre
 	if particionesLibres > 0 || espacioLibre > 0 {
@@ -783,7 +778,13 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) string {
 		fmt.Println("Queda Espacio libre:", espacioLibre)
 		//espacioLibre = espacioTotalDisco - espacioOcupado
 		porcentajeLibre = int32((100 * espacioLibre) / espacioTotalDisco)
-		dot.WriteString(fmt.Sprintf("<td>%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", "Libre", porcentajeLibre))
+		dot.WriteString(fmt.Sprintf("<td rowspan=\"2\">%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", "Libre", porcentajeLibre))
+	}
+
+	if dotLogicalPartitions.String() != "" {
+		dot.WriteString("</tr>\n")
+		dot.WriteString("<tr>\n")
+		dot.WriteString(dotLogicalPartitions.String())
 	}
 
 	dot.WriteString("</tr>\n")
