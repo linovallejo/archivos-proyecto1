@@ -677,7 +677,7 @@ func GenerateDotCodeMbr(mbr *Types.MBR, diskFileName string) string {
 	return builder.String()
 }
 
-func GenerateDotCodeDisk(mbr *Types.MBR) string {
+func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) string {
 	var dot bytes.Buffer
 
 	dot.WriteString("digraph G {\n")
@@ -686,6 +686,8 @@ func GenerateDotCodeDisk(mbr *Types.MBR) string {
 	dot.WriteString("<table border=\"0\" cellborder=\"1\" cellspacing=\"0\" cellpadding=\"4\">\n")
 
 	// var espacioLibreDisco = Mkdisk.CalcularEspacioLibreDisco(mbr)
+
+	logicalPartitions, _ := GetLogicalPartition(diskFileName)
 	// fmt.Println("Espacio libre:", espacioLibreDisco)
 
 	dot.WriteString("<tr>\n")
@@ -698,6 +700,8 @@ func GenerateDotCodeDisk(mbr *Types.MBR) string {
 	var porcentajeParticion int32 = 0
 	var espacioOcupado int32 = 0
 	var particionesLibres int32 = 0
+	var dotLogicalPartitions bytes.Buffer
+
 	//fmt.Println("Espacio total:", espacioTotalDisco)
 	for _, partition := range mbr.Partitions {
 		partitionName := Utils.CleanPartitionName(partition.Name[:])
@@ -710,38 +714,66 @@ func GenerateDotCodeDisk(mbr *Types.MBR) string {
 				fmt.Println("Espacio libre:", espacioLibre)
 			} else {
 				particionesLibres++
-				//espacioLibre += espacioLibre + partition.Size
 			}
 		} else {
-			//espacioOcupado = partition.Size
 			if espacioLibre > 0 {
 				porcentajeLibre = int32((100 * espacioLibre) / espacioTotalDisco)
 				if porcentajeLibre > 0 {
 					dot.WriteString(fmt.Sprintf("<td>%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", "Libre", porcentajeLibre))
 				}
-				//espacioLibre = 0
 			}
 			espacioOcupado += partition.Size
 			porcentajeParticion = int32((100 * partition.Size) / espacioTotalDisco)
-			dot.WriteString(fmt.Sprintf("<td>%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", partitionName, porcentajeParticion))
-			porcentajeParticion = 0
+			if (partition.Type[0] == 'P') && (porcentajeParticion > 0) {
+				dot.WriteString(fmt.Sprintf("<td rowspan=\"2\">%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", partitionName, porcentajeParticion))
+				porcentajeParticion = 0
+			} else if (partition.Type[0] == 'E') && (porcentajeParticion > 0) {
+				if logicalPartitions != nil && logicalPartitions.FirstEBR != nil {
+					currentEBR := logicalPartitions.FirstEBR
+					partitionNumber := 0
+					var espacioTotalLogicalPartitions int32 = 0
+					for currentEBR != nil {
+						// Print details of the logical partition
+						fmt.Printf("Partition %d:\n", partitionNumber)
+						fmt.Printf("  Name: %s\n", currentEBR.PartName[:])
+						fmt.Printf("  Start: %d\n", currentEBR.PartStart)
+						fmt.Printf("  Size: %d\n", currentEBR.PartSize)
 
-			// porcentajeLibre = int32((100 * espacioLibre) / espacioTotalDisco)
-			// if porcentajeLibre > 0 {
-			// 	dot.WriteString(fmt.Sprintf("<td>%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", "Libre", porcentajeLibre))
-			// }
-			// espacioLibre = 0
-			// porcentajeParticion = int32((100 * partition.Size) / espacioTotalDisco)
-			// dot.WriteString(fmt.Sprintf("<td>%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", partitionName, porcentajeParticion))
-			// porcentajeParticion = 0
+						dotLogicalPartitions.WriteString("<td>EBR</td>\n")
+						partitionName = Utils.CleanPartitionName(currentEBR.PartName[:])
+						espacioTotalLogicalPartitions += int32(currentEBR.PartSize)
+						porcentajeParticion = int32((100 * currentEBR.PartSize) / espacioTotalDisco)
+						dotLogicalPartitions.WriteString(fmt.Sprintf("<td>%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", partitionName, porcentajeParticion))
+
+						// Move to the next EBR in the chain
+						currentEBR = currentEBR.PartNext
+						partitionNumber++
+					}
+					var colSpan int = 0
+					colSpan = partitionNumber * 2
+					if (espacioTotalLogicalPartitions - partition.Size) > 0 {
+						colSpan++
+					}
+					dot.WriteString("<td colspan=\"" + strconv.Itoa(colSpan) + "\">Extendida</td>\n")
+
+					//dot.WriteString(fmt.Sprintf("<td>%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", partitionName, porcentajeParticion))
+				}
+
+				porcentajeParticion = 0
+			}
 		}
 	}
-	if particionesLibres > 0 {
+	if dotLogicalPartitions.String() != "" {
+		dot.WriteString("</tr>\n")
+		dot.WriteString("<tr>\n")
+		dot.WriteString(dotLogicalPartitions.String())
+	}
+
+	espacioLibre = espacioTotalDisco - espacioOcupado - espacioLibre
+	if particionesLibres > 0 || espacioLibre > 0 {
 		fmt.Println("Espacio total:", espacioTotalDisco)
 		fmt.Println("Espacio ocupado:", espacioOcupado)
 		fmt.Println("Espacio libre:", espacioLibre)
-
-		espacioLibre = espacioTotalDisco - espacioOcupado - espacioLibre
 
 		fmt.Println("Particiones libres:", particionesLibres)
 		fmt.Println("Queda Espacio libre:", espacioLibre)
@@ -750,35 +782,7 @@ func GenerateDotCodeDisk(mbr *Types.MBR) string {
 		dot.WriteString(fmt.Sprintf("<td>%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", "Libre", porcentajeLibre))
 	}
 
-	//dot.WriteString("<td rowspan=\"2\">Libre</td>\n")
-	//for _, p := range mbr.Partitions {
-	// if p.Status != [1]byte{0} && p.Type != [1]byte{'L'} { // Revisar si la partición no es lógica y está activa
-	// 	partitionName := string(p.Name[:])                              // Convertir el nombre de la partición a string
-	// 	partitionName = Utils.CleanPartitionName([]byte(partitionName)) // Convertir partitionName a []byte antes de pasarlo como argumento
-	// 	dot.WriteString(fmt.Sprintf("<td>%s<br/>%d bytes</td>\n", partitionName, p.Size))
-	// }
-	//}
-	// dot.WriteString("<td rowspan=\"2\">Primaria</td>\n")
-	// dot.WriteString("<td rowspan=\"2\">Libre</td>\n")
-
 	dot.WriteString("</tr>\n")
-
-	// Segunda fila para particiones lógicas si existe una extendida
-	// for _, p := range mbr.Partitions {
-	// 	if p.Status != [1]byte{0} && p.Type == [1]byte{'E'} { // Si hay una extendida, asumimos que hay lógicas
-	// 		dot.WriteString("<tr>\n")
-	// 		dot.WriteString("<td colspan=\"3\">Extendida</td>\n") // Colspan basado en la cantidad de lógicas
-	// 		for _, subP := range mbr.Partitions {
-	// 			if subP.Status != [1]byte{0} && subP.Type == [1]byte{'L'} { // Revisar si la partición es lógica
-	// 				partitionName := string(subP.Name[:]) // Convertir el nombre de la partición a string
-	// 				partitionName = Utils.CleanPartitionName([]byte(partitionName))
-	// 				dot.WriteString(fmt.Sprintf("<td>%s<br/>%d bytes</td>\n", partitionName, subP.Size))
-	// 			}
-	// 		}
-	// 		dot.WriteString("</tr>\n")
-	// 		break // Solo una fila para las lógicas
-	// 	}
-	// }
 
 	dot.WriteString("</table>\n")
 	dot.WriteString(">];\n")

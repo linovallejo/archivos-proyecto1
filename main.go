@@ -522,7 +522,7 @@ func rep(diskFileName string, params []string) {
 	case "mbr":
 		dotCode = Fdisk.GenerateDotCodeMbr(mbr, diskFileName)
 	case "disk":
-		dotCode = Fdisk.GenerateDotCodeDisk(mbr)
+		dotCode = Fdisk.GenerateDotCodeDisk(mbr, diskFileName)
 	case "tree":
 		// Leer el MBR existente
 		mbr, err := Fdisk.ReadMBR(diskFileName)
