@@ -749,10 +749,14 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) string {
 						currentEBR = currentEBR.PartNext
 						partitionNumber++
 					}
+					fmt.Println("Espacio total:", espacioTotalLogicalPartitions)
+					fmt.Println("Extendida:", partition.Size)
 					var colSpan int = 0
 					colSpan = partitionNumber * 2
-					if (espacioTotalLogicalPartitions - partition.Size) > 0 {
+					if (partition.Size - espacioTotalLogicalPartitions) > 0 {
 						colSpan++
+						porcentajeLibre = int32((100 * (partition.Size - espacioTotalLogicalPartitions)) / espacioTotalDisco)
+						dotLogicalPartitions.WriteString(fmt.Sprintf("<td>%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", "Libre", porcentajeLibre))
 					}
 					dot.WriteString("<td colspan=\"" + strconv.Itoa(colSpan) + "\">Extendida</td>\n")
 
