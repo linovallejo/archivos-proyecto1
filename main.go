@@ -11,6 +11,7 @@ import (
 	Mount "proyecto1/commands/mount"
 	Rep "proyecto1/commands/rep"
 	Rmdisk "proyecto1/commands/rmdisk"
+	Command "proyecto1/commands/validations"
 	Reportes "proyecto1/reportes"
 	Types "proyecto1/types"
 	Utils "proyecto1/utils"
@@ -57,114 +58,127 @@ func main() {
 		if command == "" || strings.HasPrefix(command, "#") {
 			continue
 		}
-		var commandLower string = strings.ToLower(command)
 
-		switch {
-		case strings.HasPrefix(commandLower, "mkdisk"):
-			params := strings.Fields(command)
-			archivoBinarioDiscoActual = mkdisk(params[1:])
-
-			fmt.Println("despues del mkdisk")
-			var TempMBR2 *Types.MBR
-			TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+		err = Command.ValidarComando(command)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			err = Command.ValidarParametros(command)
 			if err != nil {
-				fmt.Println("Error leyendo el MBR:", err)
-				return
+				fmt.Println(err)
+			} else {
+
+				var commandLower string = strings.ToLower(command)
+
+				switch {
+				case strings.HasPrefix(commandLower, "mkdisk"):
+					params := strings.Fields(command)
+					archivoBinarioDiscoActual = mkdisk(params[1:])
+
+					fmt.Println("despues del mkdisk")
+					var TempMBR2 *Types.MBR
+					TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+					if err != nil {
+						fmt.Println("Error leyendo el MBR:", err)
+						return
+					}
+
+					Utils.PrintMBRv3(TempMBR2)
+				case strings.HasPrefix(commandLower, "fdisk"):
+					params := strings.Fields(command)
+
+					fmt.Println("antes del fdisk")
+					var TempMBR2 *Types.MBR
+					TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+					if err != nil {
+						fmt.Println("Error leyendo el MBR:", err)
+						return
+					}
+					Utils.PrintMBRv3(TempMBR2)
+
+					fdisk(params[1:])
+
+					fmt.Println("despues del fdisk")
+					var TempMBR3 *Types.MBR
+					TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+					if err != nil {
+						fmt.Println("Error leyendo el MBR:", err)
+						return
+					}
+					Utils.PrintMBRv3(TempMBR3)
+
+					logicalPartitions, _ := Fdisk.GetLogicalPartition(archivoBinarioDiscoActual)
+					Fdisk.PrintLogicalPartitions(logicalPartitions)
+
+				case strings.HasPrefix(commandLower, "rmdisk"):
+					fmt.Println("¿Está seguro de que desea eliminar el disco? [s/N]:")
+					var response string
+					_, err := fmt.Scanln(&response)
+					if err != nil || (response != "s" && response != "S") {
+						fmt.Println("Operación cancelada.")
+						return
+					}
+
+					params := strings.Fields(command)
+					rmdisk(params[1:])
+				case strings.HasPrefix(commandLower, "mount"):
+					params := strings.Fields(command)
+
+					fmt.Println("antes del mount")
+					var TempMBR2 *Types.MBR
+					TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+					if err != nil {
+						fmt.Println("Error leyendo el MBR:", err)
+						return
+					}
+					Utils.PrintMBRv3(TempMBR2)
+
+					mount(params[1:])
+
+					fmt.Println("despues del mount")
+					var TempMBR3 *Types.MBR
+					TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+					if err != nil {
+						fmt.Println("Error leyendo el MBR:", err)
+						return
+					}
+					Utils.PrintMBRv3(TempMBR3)
+				case strings.HasPrefix(commandLower, "unmount"):
+					params := strings.Fields(command)
+					unmount(params[1:], archivoBinarioDiscoActual)
+				case strings.HasPrefix(commandLower, "rep"):
+					params := strings.Fields(command)
+					rep(archivoBinarioDiscoActual, params[1:])
+				case strings.HasPrefix(commandLower, "pause"):
+					fmt.Println("Presione cualquier tecla para continuar...")
+					fmt.Scanln()
+				case strings.HasPrefix(commandLower, "mkfs"):
+					params := strings.Fields(command)
+
+					fmt.Println("antes del mkfs")
+					var TempMBR2 *Types.MBR
+					TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+					if err != nil {
+						fmt.Println("Error leyendo el MBR:", err)
+						return
+					}
+					Utils.PrintMBRv3(TempMBR2)
+
+					mkfs(params[1:], archivoBinarioDiscoActual)
+
+					fmt.Println("despues del mkfs")
+					var TempMBR3 *Types.MBR
+					TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+					if err != nil {
+						fmt.Println("Error leyendo el MBR:", err)
+						return
+					}
+					Utils.PrintMBRv3(TempMBR3)
+				}
 			}
-
-			Utils.PrintMBRv3(TempMBR2)
-		case strings.HasPrefix(commandLower, "fdisk"):
-			params := strings.Fields(command)
-
-			fmt.Println("antes del fdisk")
-			var TempMBR2 *Types.MBR
-			TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-			if err != nil {
-				fmt.Println("Error leyendo el MBR:", err)
-				return
-			}
-			Utils.PrintMBRv3(TempMBR2)
-
-			fdisk(params[1:])
-
-			fmt.Println("despues del fdisk")
-			var TempMBR3 *Types.MBR
-			TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-			if err != nil {
-				fmt.Println("Error leyendo el MBR:", err)
-				return
-			}
-			Utils.PrintMBRv3(TempMBR3)
-
-			logicalPartitions, _ := Fdisk.GetLogicalPartition(archivoBinarioDiscoActual)
-			Fdisk.PrintLogicalPartitions(logicalPartitions)
-
-		case strings.HasPrefix(commandLower, "rmdisk"):
-			// fmt.Println("¿Está seguro de que desea eliminar el disco? [s/N]:")
-			// var response string
-			// _, err := fmt.Scanln(&response)
-			// if err != nil || (response != "s" && response != "S") {
-			// 	fmt.Println("Operación cancelada.")
-			// 	return
-			// }
-
-			params := strings.Fields(command)
-			rmdisk(params[1:])
-		case strings.HasPrefix(commandLower, "mount"):
-			params := strings.Fields(command)
-
-			fmt.Println("antes del mount")
-			var TempMBR2 *Types.MBR
-			TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-			if err != nil {
-				fmt.Println("Error leyendo el MBR:", err)
-				return
-			}
-			Utils.PrintMBRv3(TempMBR2)
-
-			mount(params[1:])
-
-			fmt.Println("despues del mount")
-			var TempMBR3 *Types.MBR
-			TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-			if err != nil {
-				fmt.Println("Error leyendo el MBR:", err)
-				return
-			}
-			Utils.PrintMBRv3(TempMBR3)
-		case strings.HasPrefix(commandLower, "unmount"):
-			params := strings.Fields(command)
-			unmount(params[1:], archivoBinarioDiscoActual)
-		case strings.HasPrefix(commandLower, "rep"):
-			params := strings.Fields(command)
-			rep(archivoBinarioDiscoActual, params[1:])
-		case strings.HasPrefix(commandLower, "pause"):
-			fmt.Println("Presione cualquier tecla para continuar...")
-			fmt.Scanln()
-		case strings.HasPrefix(commandLower, "mkfs"):
-			params := strings.Fields(command)
-
-			fmt.Println("antes del mkfs")
-			var TempMBR2 *Types.MBR
-			TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-			if err != nil {
-				fmt.Println("Error leyendo el MBR:", err)
-				return
-			}
-			Utils.PrintMBRv3(TempMBR2)
-
-			mkfs(params[1:], archivoBinarioDiscoActual)
-
-			fmt.Println("despues del mkfs")
-			var TempMBR3 *Types.MBR
-			TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-			if err != nil {
-				fmt.Println("Error leyendo el MBR:", err)
-				return
-			}
-			Utils.PrintMBRv3(TempMBR3)
 
 		}
+
 	}
 	//Rmdisk.RemoveDisk(archivoBinarioDiscoActual)
 }
