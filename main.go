@@ -13,7 +13,6 @@ import (
 	Rmdisk "proyecto1/commands/rmdisk"
 	Command "proyecto1/commands/validations"
 	Reportes "proyecto1/reportes"
-	Types "proyecto1/types"
 	Utils "proyecto1/utils"
 	"strings"
 )
@@ -25,7 +24,7 @@ var ajusteParticionActual string = "" // first fit, best fit, worst fit
 func main() {
 	Utils.LimpiarConsola()
 	Utils.PrintCopyright()
-	fmt.Println("Procesador de Comandos - Proyecto 1")
+	fmt.Println("Sistema de Archivos ext2/ext3 - Proyecto 1")
 
 	var input string
 	scanner := bufio.NewScanner(os.Stdin)
@@ -55,6 +54,10 @@ func main() {
 
 	for _, command := range commands {
 		command = strings.TrimSpace(command)
+		if command != "" {
+			fmt.Println("Procesando comando: ", command)
+			continue
+		}
 		if command == "" || strings.HasPrefix(command, "#") {
 			continue
 		}
@@ -75,47 +78,47 @@ func main() {
 					params := strings.Fields(command)
 					archivoBinarioDiscoActual = mkdisk(params[1:])
 
-					fmt.Println("despues del mkdisk")
-					var TempMBR2 *Types.MBR
-					TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					if err != nil {
-						fmt.Println("Error leyendo el MBR:", err)
-						return
-					}
+					// fmt.Println("despues del mkdisk")
+					// var TempMBR2 *Types.MBR
+					// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+					// if err != nil {
+					// 	fmt.Println("Error leyendo el MBR:", err)
+					// 	return
+					// }
 
-					Utils.PrintMBRv3(TempMBR2)
+					// Utils.PrintMBRv3(TempMBR2)
 				case strings.HasPrefix(commandLower, "fdisk"):
 					params := strings.Fields(command)
 
-					fmt.Println("antes del fdisk")
-					var TempMBR2 *Types.MBR
-					TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					if err != nil {
-						fmt.Println("Error leyendo el MBR:", err)
-						return
-					}
-					Utils.PrintMBRv3(TempMBR2)
+					// fmt.Println("antes del fdisk")
+					// var TempMBR2 *Types.MBR
+					// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+					// if err != nil {
+					// 	fmt.Println("Error leyendo el MBR:", err)
+					// 	return
+					// }
+					// Utils.PrintMBRv3(TempMBR2)
 
 					fdisk(params[1:])
 
-					fmt.Println("despues del fdisk")
-					var TempMBR3 *Types.MBR
-					TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					if err != nil {
-						fmt.Println("Error leyendo el MBR:", err)
-						return
-					}
-					Utils.PrintMBRv3(TempMBR3)
+					// fmt.Println("despues del fdisk")
+					// var TempMBR3 *Types.MBR
+					// TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+					// if err != nil {
+					// 	fmt.Println("Error leyendo el MBR:", err)
+					// 	return
+					// }
+					// Utils.PrintMBRv3(TempMBR3)
 
-					logicalPartitions, _ := Fdisk.GetLogicalPartition(archivoBinarioDiscoActual)
-					Fdisk.PrintLogicalPartitions(logicalPartitions)
+					// logicalPartitions, _ := Fdisk.GetLogicalPartition(archivoBinarioDiscoActual)
+					// Fdisk.PrintLogicalPartitions(logicalPartitions)
 
 				case strings.HasPrefix(commandLower, "rmdisk"):
 					fmt.Println("¿Está seguro de que desea eliminar el disco? [s/N]:")
 					var response string
 					_, err := fmt.Scanln(&response)
 					if err != nil || (response != "s" && response != "S") {
-						fmt.Println("Operación cancelada.")
+						fmt.Println("Operación de eliminación cancelada.")
 						return
 					}
 
@@ -124,25 +127,25 @@ func main() {
 				case strings.HasPrefix(commandLower, "mount"):
 					params := strings.Fields(command)
 
-					fmt.Println("antes del mount")
-					var TempMBR2 *Types.MBR
-					TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					if err != nil {
-						fmt.Println("Error leyendo el MBR:", err)
-						return
-					}
-					Utils.PrintMBRv3(TempMBR2)
+					// fmt.Println("antes del mount")
+					// var TempMBR2 *Types.MBR
+					// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+					// if err != nil {
+					// 	fmt.Println("Error leyendo el MBR:", err)
+					// 	return
+					// }
+					// Utils.PrintMBRv3(TempMBR2)
 
 					mount(params[1:])
 
-					fmt.Println("despues del mount")
-					var TempMBR3 *Types.MBR
-					TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					if err != nil {
-						fmt.Println("Error leyendo el MBR:", err)
-						return
-					}
-					Utils.PrintMBRv3(TempMBR3)
+					// fmt.Println("despues del mount")
+					// var TempMBR3 *Types.MBR
+					// TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+					// if err != nil {
+					// 	fmt.Println("Error leyendo el MBR:", err)
+					// 	return
+					// }
+					// Utils.PrintMBRv3(TempMBR3)
 				case strings.HasPrefix(commandLower, "unmount"):
 					params := strings.Fields(command)
 					unmount(params[1:], archivoBinarioDiscoActual)
@@ -155,25 +158,25 @@ func main() {
 				case strings.HasPrefix(commandLower, "mkfs"):
 					params := strings.Fields(command)
 
-					fmt.Println("antes del mkfs")
-					var TempMBR2 *Types.MBR
-					TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					if err != nil {
-						fmt.Println("Error leyendo el MBR:", err)
-						return
-					}
-					Utils.PrintMBRv3(TempMBR2)
+					// fmt.Println("antes del mkfs")
+					// var TempMBR2 *Types.MBR
+					// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+					// if err != nil {
+					// 	fmt.Println("Error leyendo el MBR:", err)
+					// 	return
+					// }
+					// Utils.PrintMBRv3(TempMBR2)
 
 					mkfs(params[1:], archivoBinarioDiscoActual)
 
-					fmt.Println("despues del mkfs")
-					var TempMBR3 *Types.MBR
-					TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					if err != nil {
-						fmt.Println("Error leyendo el MBR:", err)
-						return
-					}
-					Utils.PrintMBRv3(TempMBR3)
+					// fmt.Println("despues del mkfs")
+					// var TempMBR3 *Types.MBR
+					// TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+					// if err != nil {
+					// 	fmt.Println("Error leyendo el MBR:", err)
+					// 	return
+					// }
+					// Utils.PrintMBRv3(TempMBR3)
 				}
 			}
 
@@ -287,7 +290,7 @@ func fdisk(params []string) {
 			}
 		}
 
-		fmt.Println("partitionType to be deleted:", partitionType)
+		///fmt.Println("partitionType to be deleted:", partitionType)
 		if partitionType == "P" || partitionType == "E" {
 			err = Fdisk.DeletePartition(mbr, archivoBinarioDisco, name)
 			if err != nil {
@@ -304,14 +307,14 @@ func fdisk(params []string) {
 				fmt.Println("Error al eliminar la partición:", err)
 			}
 
-			Fdisk.PrintLogicalPartitions(logicalPartitions)
+			///Fdisk.PrintLogicalPartitions(logicalPartitions)
 
 		}
 		return
 	}
 
 	// Parametro add
-	fmt.Println("addValue:", addValue)
+	///fmt.Println("addValue:", addValue)
 	if addValue > 0 || addValue < 0 {
 		err = Fdisk.AdjustPartitionSize(mbr, name, addValue, unit, archivoBinarioDisco)
 		if err != nil {
@@ -388,12 +391,12 @@ func mount(params []string) {
 		fmt.Println("Error al montar la partición.")
 	}
 
-	mbr, err = Fdisk.ReadMBR(archivoBinarioDisco)
-	if err != nil {
-		fmt.Println("Error leyendo el MBR:", err)
-		return
-	}
-	Utils.PrintMounted(mbr)
+	// mbr, err = Fdisk.ReadMBR(archivoBinarioDisco)
+	// if err != nil {
+	// 	fmt.Println("Error leyendo el MBR:", err)
+	// 	return
+	// }
+	// Utils.PrintMounted(mbr)
 
 }
 
@@ -410,16 +413,17 @@ func unmount(params []string, archivoBinarioDisco string) {
 		return
 	}
 
-	fmt.Println("mbr in unmount:", mbr)
-	fmt.Println("id:", id)
+	///fmt.Println("mbr in unmount:", mbr)
+	///fmt.Println("id:", id)
 
 	_, err = Mount.ValidatePartitionId(mbr, id)
 	if err != nil {
 		fmt.Println(err)
 		return
-	} else {
-		fmt.Println("Partición encontrada.")
 	}
+	/// else {
+	/// 	fmt.Println("Partición encontrada.")
+	/// }
 
 	_, err = Mount.UnmountPartition(mbr, id, archivoBinarioDisco)
 	if err != nil {
@@ -428,14 +432,14 @@ func unmount(params []string, archivoBinarioDisco string) {
 		fmt.Println("Partición desmontada exitosamente.")
 	}
 
-	var TempMBR2 *Types.MBR
-	TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDisco)
-	if err != nil {
-		fmt.Println("Error leyendo el MBR:", err)
-	} else {
-		Utils.PrintMBRv3(TempMBR2)
-		//Utils.PrintMounted(TempMBR2)
-	}
+	// var TempMBR2 *Types.MBR
+	// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDisco)
+	// if err != nil {
+	// 	fmt.Println("Error leyendo el MBR:", err)
+	// } else {
+	// 	Utils.PrintMBRv3(TempMBR2)
+	// 	//Utils.PrintMounted(TempMBR2)
+	// }
 }
 
 func mkfs(params []string, archivoBinarioDisco string) {
@@ -451,55 +455,57 @@ func mkfs(params []string, archivoBinarioDisco string) {
 		return
 	}
 
-	fmt.Println("mbr in mkfs:", mbr)
-	fmt.Println("id:", id)
+	/// fmt.Println("mbr in mkfs:", mbr)
+	/// fmt.Println("id:", id)
 
 	_, err = Mount.ValidatePartitionId(mbr, id)
 	if err != nil {
 		fmt.Println(err)
 		return
-	} else {
-		fmt.Println("Partición encontrada.")
 	}
+	///else {
+	///	fmt.Println("Partición encontrada.")
+	///}
 
 	err = Mkfs.MakeFileSystem(archivoBinarioDisco, id, type_, fs)
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Println("Sistema de archivos creado exitosamente.")
+		fmt.Printf("Sistema de archivos %s creado exitosamente.", fs)
 
-		var partitionStart int32 = 0
-		partitionStart, err = Mount.GetPartitionStart(mbr, id)
-		if err != nil {
-			fmt.Println("Error getting partition start:", err)
-			return
-		} else {
-			fmt.Println("Partition start:", partitionStart)
-		}
+		// var partitionStart int32 = 0
+		// partitionStart, err = Mount.GetPartitionStart(mbr, id)
+		// if err != nil {
+		// 	fmt.Println("Error getting partition start:", err)
+		// 	return
+		// }
+		// else {
+		// 	fmt.Println("Partition start:", partitionStart)
+		// }
 
-		superblock, err := Mkfs.ReadSuperBlock(archivoBinarioDisco, partitionStart)
-		if err != nil {
-			fmt.Println("Error reading superblock:", err)
-			return
-		}
+		// superblock, err := Mkfs.ReadSuperBlock(archivoBinarioDisco, partitionStart)
+		// if err != nil {
+		// 	fmt.Println("Error reading superblock:", err)
+		// 	return
+		// }
 
-		fmt.Println("Superblock:", superblock)
+		///fmt.Println("Superblock:", superblock)
 
-		inodes, err := Mkfs.ReadInodesFromFile(archivoBinarioDisco, superblock)
-		if err != nil {
-			fmt.Println("Error reading inodes:", err)
-			return
-		}
+		// inodes, err := Mkfs.ReadInodesFromFile(archivoBinarioDisco, superblock)
+		// if err != nil {
+		// 	fmt.Println("Error reading inodes:", err)
+		// 	return
+		// }
 
-		fmt.Println("Inodes:", inodes[0])
+		///fmt.Println("Inodes:", inodes[0])
 
-		directoryBlocks, err := Mkfs.ReadDirectoryBlocksFromFile(archivoBinarioDisco, superblock)
-		if err != nil {
-			fmt.Println("Error reading directory blocks:", err)
-			return
-		}
+		// directoryBlocks, err := Mkfs.ReadDirectoryBlocksFromFile(archivoBinarioDisco, superblock)
+		// if err != nil {
+		// 	fmt.Println("Error reading directory blocks:", err)
+		// 	return
+		// }
 
-		fmt.Println("Directory Blocks:", directoryBlocks)
+		// fmt.Println("Directory Blocks:", directoryBlocks)
 
 	}
 }
@@ -545,16 +551,17 @@ func rep(diskFileName string, params []string) {
 			return
 		}
 
-		fmt.Println("mbr in rep:", mbr)
-		fmt.Println("id:", id)
+		/// fmt.Println("mbr in rep:", mbr)
+		/// fmt.Println("id:", id)
 
 		_, err = Mount.ValidatePartitionId(mbr, id)
 		if err != nil {
 			fmt.Println(err)
 			return
-		} else {
-			fmt.Println("Partición encontrada.")
 		}
+		///else {
+		///	fmt.Println("Partición encontrada.")
+		///}
 
 		var partitionStart int32 = 0
 		partitionStart, err = Mount.GetPartitionStart(mbr, id)
@@ -562,9 +569,10 @@ func rep(diskFileName string, params []string) {
 		if err != nil {
 			fmt.Println(err)
 			return
-		} else {
-			fmt.Println("Start:", partitionStart)
 		}
+		/// else {
+		/// 	fmt.Println("Start:", partitionStart)
+		/// }
 
 		superblock, err := Mkfs.ReadSuperBlock(diskFileName, partitionStart)
 		if err != nil {
@@ -572,7 +580,7 @@ func rep(diskFileName string, params []string) {
 			return
 		}
 
-		fmt.Println("Superblock in rep:", superblock)
+		/// fmt.Println("Superblock in rep:", superblock)
 
 		inodes, err := Mkfs.ReadInodesFromFile(diskFileName, superblock)
 		if err != nil {
@@ -586,9 +594,9 @@ func rep(diskFileName string, params []string) {
 			return
 		}
 
-		fmt.Println("Inodes[0] in rep:", inodes[0])
+		/// fmt.Println("Inodes[0] in rep:", inodes[0])
 
-		fmt.Println("Directory Blocks in rep:", directoryBlocks)
+		/// fmt.Println("Directory Blocks in rep:", directoryBlocks)
 
 		dotCode = Mkfs.GenerateDotCodeTree(inodes, directoryBlocks)
 
