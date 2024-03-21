@@ -51,6 +51,10 @@ var commandParams = map[string]map[string]CommandParamDetails{
 }
 
 func ValidarParametros(commandLine string) error {
+	hashIndex := strings.Index(commandLine, "#")
+	if hashIndex != -1 {
+		commandLine = commandLine[:hashIndex]
+	}
 	parts := strings.Fields(commandLine)
 	if len(parts) < 2 {
 		return errors.New("formato de comando invalido")

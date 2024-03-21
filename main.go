@@ -56,22 +56,21 @@ func main() {
 		command = strings.TrimSpace(command)
 		if command != "" {
 			fmt.Println("Procesando comando: ", command)
-			continue
 		}
 		if command == "" || strings.HasPrefix(command, "#") {
 			continue
 		}
 
-		err = Command.ValidarComando(command)
+		var commandLower string = strings.ToLower(command)
+
+		err = Command.ValidarComando(commandLower)
 		if err != nil {
 			fmt.Println(err)
 		} else {
-			err = Command.ValidarParametros(command)
+			err = Command.ValidarParametros(commandLower)
 			if err != nil {
 				fmt.Println(err)
 			} else {
-
-				var commandLower string = strings.ToLower(command)
 
 				switch {
 				case strings.HasPrefix(commandLower, "mkdisk"):
@@ -227,14 +226,14 @@ func mkdisk(params []string) string {
 	// Creación del disco con el tamaño calculado en bytes
 	Mkdisk.CreateDiskWithSize(filename, int32(sizeInBytes), diskFit)
 
-	fmt.Println("Disco creado con éxito!")
+	fmt.Printf("Disco %s creado exitosamente!\n", filename)
 
 	return filename
 }
 
 func fdisk(params []string) {
 	size, driveletter, name, unit, typePart, fit, delete, addValue, err := Fdisk.ExtractFdiskParams(params)
-	//fmt.Println("size:", size, "driveletter:", driveletter, "name:", name, "unit:", unit, "typePart:", typePart, "fit:", fit, "delete:", delete, "addValue:", addValue)
+	fmt.Println("size:", size, "driveletter:", driveletter, "name:", name, "unit:", unit, "typePart:", typePart, "fit:", fit, "delete:", delete, "addValue:", addValue)
 
 	if err != nil {
 		fmt.Println("Error al procesar los parámetros FDISK:", err)
@@ -243,6 +242,7 @@ func fdisk(params []string) {
 
 	// Leer el MBR existente
 	filename := driveletter + ".dsk"
+	fmt.Println("filename:", filename)
 	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
 	if err != nil {
 		fmt.Println(err)
@@ -262,12 +262,13 @@ func fdisk(params []string) {
 	}
 
 	var sizeInBytes int64 = 0
+	unit = strings.ToLower(unit)
 	switch unit {
-	case "B":
+	case "b":
 		sizeInBytes = size
-	case "K":
+	case "k":
 		sizeInBytes = size * 1024
-	case "M":
+	case "m":
 		sizeInBytes = size * 1024 * 1024
 	}
 
@@ -331,7 +332,7 @@ func fdisk(params []string) {
 	}
 
 	// Ajustar y crear la partición
-	err = Fdisk.AdjustAndCreatePartition(mbr, int32(size), unit, typePart, fit, name, archivoBinarioDiscoActual)
+	err = Fdisk.AdjustAndCreatePartition(mbr, int32(size), unit, typePart, fit, name, archivoBinarioDisco)
 	if err != nil {
 		fmt.Println("Error al ajustar y crear la partición:", err)
 	} else {
@@ -357,6 +358,8 @@ func rmdisk(params []string) {
 	if err != nil {
 		fmt.Println(err)
 	}
+
+	fmt.Printf("Disco %s eliminado exitosamente!\n", filename)
 }
 
 func mount(params []string) {

@@ -94,8 +94,9 @@ func ExtractFdiskParams(params []string) (int64, string, string, string, string,
 			}
 		case strings.HasPrefix(param, "-unit="):
 			unit = strings.TrimPrefix(param, "-unit=")
+			unit = strings.ToLower(unit)
 			// Validar la unidad de la partición
-			if unit != "B" && unit != "K" && unit != "M" {
+			if unit != "b" && unit != "k" && unit != "m" {
 				return 0, "", "", "", "", "", "", 0, fmt.Errorf("Parametro unidad invalido")
 			}
 		case strings.HasPrefix(param, "-type="):
@@ -197,14 +198,17 @@ func calculateTotalUsedSpace(mbr Types.MBR) (int32, error) {
 }
 
 func createPartition(mbr *Types.MBR, start int64, size int32, unit string, typePart, fit, name string, diskFileName string) error {
+	fmt.Println("createPartition: ", start, size, unit, typePart, fit, name, diskFileName)
 
 	var sizeInBytes int32 = 0
+	unit = strings.ToLower(unit)
+
 	switch unit {
-	case "B":
+	case "b":
 		sizeInBytes = size
-	case "K":
+	case "k":
 		sizeInBytes = size * 1024
-	case "M":
+	case "m":
 		sizeInBytes = size * 1024 * 1024
 	default:
 		return fmt.Errorf("Unidad invalida")
@@ -423,11 +427,12 @@ func findWorstFit(spaces []Space, size int32) *Space {
 	return worstSpace
 }
 func ValidatePartitionTypeCreation(mbr *Types.MBR, partType string) error {
-	var countP, countE int
+	var countP, countE int = 1, 1
 
 	for _, partition := range mbr.Partitions {
-		// fmt.Println("Particion:", string(partition.Name[:]))
-		// fmt.Println("Type:", partition.Type[0])
+		// fmt.Println("Particion:", partition)
+		// fmt.Println("Particion:", Utils.CleanPartitionName(partition.Name[:]))
+		// fmt.Println("Type:", string(partition.Type[0]))
 		// fmt.Printf("Debug Type: %s\n", string(partition.Type[:]))
 		switch string(partition.Type[:]) {
 		case "P": // Asume que 'P' representa una partición Primaria
@@ -444,7 +449,7 @@ func ValidatePartitionTypeCreation(mbr *Types.MBR, partType string) error {
 		return fmt.Errorf("Ya existe una partición extendida en el disco")
 	}
 
-	if (partType == "P" || partType == "E") && (countP+countE) >= 4 {
+	if (partType == "P" || partType == "E") && (countP+countE) > 4 {
 		return fmt.Errorf("No se pueden crear más particiones primarias o extendidas (límite de 4)")
 	}
 
@@ -461,11 +466,11 @@ func ValidatePartitionsSizeAgainstDiskSize(mbr *Types.MBR, newPartitionSize int6
 	var totalSizePartitions int64 = 0
 	for _, partition := range mbr.Partitions {
 		if string(partition.Type[:]) != "L" {
-			fmt.Println("partition.Type:", string(partition.Type[:]))
-			fmt.Println("partition.Size:", partition.Size)
+			//fmt.Println("partition.Type:", string(partition.Type[:]))
+			//fmt.Println("partition.Size:", partition.Size)
 
 			totalSizePartitions += int64(partition.Size)
-			fmt.Println("totalSizePartitions:", totalSizePartitions)
+			//fmt.Println("totalSizePartitions:", totalSizePartitions)
 		}
 	}
 
@@ -799,8 +804,8 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) string {
 func ValidatePartitionName(mbr *Types.MBR, name string, delete string) error {
 	partitionExists := false
 
-	fmt.Println("Validando nombre de la partición:", name)
-	fmt.Println("Delete:", delete)
+	// fmt.Println("Validando nombre de la partición:", name)
+	// fmt.Println("Delete:", delete)
 
 	var partitionName string = ""
 	for _, partition := range mbr.Partitions {
@@ -827,10 +832,13 @@ func ValidatePartitionName(mbr *Types.MBR, name string, delete string) error {
 }
 
 func CalculateSize(size int64, unit string) (int64, error) {
+	unit = strings.ToLower(unit)
 	switch unit {
-	case "K":
+	case "b":
+		return size, nil
+	case "k":
 		return size * 1024, nil
-	case "M":
+	case "m":
 		return size * 1024 * 1024, nil
 	default:
 		return 0, fmt.Errorf("unidad invalida")

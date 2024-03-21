@@ -1,3 +1,4 @@
+#CREACION DE DISCOS
 Mkdisk -size=50 -unit=M -fit=FF                   
 Mkdisk -unit=K -size=51200 -fit=BF                # 50M B
 mkDisk -size=14                                   # 13M C
@@ -7,6 +8,7 @@ Mkdisk -size=50 -unit=M -fit=FF                   # 50M F X
 Mkdisk -size=50 -unit=M -fit=FF                   # 50M G X
 mkdisk -size=51200 -unit=K                        # 50M H X
 mkdisk -size=51200 -unit=K                        # 50M I X
+#PASSED
 
 #ELIMINACION DE DISCOS---------------------------------------------------
 rmdisk -driveletter=Z #ERR RUTA NO ENCONTRADA
@@ -14,6 +16,7 @@ rmdisk -driveletter=F
 rmdisk -driveletter=G
 rmdisk -driveletter=H
 rmdisk -driveletter=I
+#PASSED
 
 #CREACION DE PARTICIONES---------------------------------------------------
 #DISCO 1
@@ -24,3 +27,6 @@ fdisk -type=P -unit=M -name=Part3 -size=10 -driveletter=A -fit=BF       # 10M
 fdisk -type=P -unit=b -name=Part4 -size=10485760 -driveletter=A -fit=BF # 10M
 fdisk -type=P -unit=b -name=Part5 -size=10485760 -driveletter=A -fit=BF #ERR PARTICION 5
 # LIBRE DISCO 1: 50-4*10 = 10 -> 20%
+#PASSED
+
+
