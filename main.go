@@ -55,6 +55,7 @@ func main() {
 	for _, command := range commands {
 		command = strings.TrimSpace(command)
 		if command != "" {
+			fmt.Println("_______________________________________________________")
 			fmt.Println("Procesando comando: ", command)
 		}
 		if command == "" || strings.HasPrefix(command, "#") {
@@ -113,13 +114,13 @@ func main() {
 					// Fdisk.PrintLogicalPartitions(logicalPartitions)
 
 				case strings.HasPrefix(commandLower, "rmdisk"):
-					fmt.Println("¿Está seguro de que desea eliminar el disco? [s/N]:")
-					var response string
-					_, err := fmt.Scanln(&response)
-					if err != nil || (response != "s" && response != "S") {
-						fmt.Println("Operación de eliminación cancelada.")
-						return
-					}
+					// fmt.Println("¿Está seguro de que desea eliminar el disco? [s/N]:")
+					// var response string
+					// _, err := fmt.Scanln(&response)
+					// if err != nil || (response != "s" && response != "S") {
+					// 	fmt.Println("Operación de eliminación cancelada.")
+					// 	return
+					// }
 
 					params := strings.Fields(command)
 					rmdisk(params[1:])
@@ -233,7 +234,7 @@ func mkdisk(params []string) string {
 
 func fdisk(params []string) {
 	size, driveletter, name, unit, typePart, fit, delete, addValue, err := Fdisk.ExtractFdiskParams(params)
-	fmt.Println("size:", size, "driveletter:", driveletter, "name:", name, "unit:", unit, "typePart:", typePart, "fit:", fit, "delete:", delete, "addValue:", addValue)
+	//fmt.Println("size:", size, "driveletter:", driveletter, "name:", name, "unit:", unit, "typePart:", typePart, "fit:", fit, "delete:", delete, "addValue:", addValue)
 
 	if err != nil {
 		fmt.Println("Error al procesar los parámetros FDISK:", err)
@@ -242,7 +243,7 @@ func fdisk(params []string) {
 
 	// Leer el MBR existente
 	filename := driveletter + ".dsk"
-	fmt.Println("filename:", filename)
+	//fmt.Println("filename:", filename)
 	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
 	if err != nil {
 		fmt.Println(err)
@@ -336,7 +337,7 @@ func fdisk(params []string) {
 	if err != nil {
 		fmt.Println("Error al ajustar y crear la partición:", err)
 	} else {
-		fmt.Println("main.go - Partición creada exitosamente.")
+		fmt.Println("Partición creada exitosamente.")
 	}
 }
 

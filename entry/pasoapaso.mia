@@ -29,4 +29,28 @@ fdisk -type=P -unit=b -name=Part5 -size=10485760 -driveletter=A -fit=BF #ERR PAR
 # LIBRE DISCO 1: 50-4*10 = 10 -> 20%
 #PASSED
 
+#DISCO 2
+fdisk -type=L -unit=k -name=Part6 -size=10240 -driveletter=B -fit=BF #ERRROR no hay una extendida
+fdisk -type=L -unit=k -name=Part7 -size=10240 -driveletter=B -fit=BF #ERRROR no hay una extendida
+fDisk -type=P -unit=K -name=Part8 -size=10240 -driveletter=B -fit=BF    # 10M
+fDisk -type=P -unit=m -name=Part9 -size=10 -driveletter=B -fit=FF       # 10M
+fDisk -type=P -unit=K -name=Part10 -size=5120 -driveletter=B -fit=WF    # 5M
+fdisk -type=E -unit=m -name=Part11 -size=20 -driveletter=B            # 20M
+fdisk -type=L -unit=k -name=Part12 -size=1536 -driveletter=B          # 1.5M
+fdisk -type=L -unit=k -name=Part13 -size=1536 -driveletter=B -fit=BF
+fdisk -type=L -unit=k -name=Part14 -size=1536 -driveletter=B -fit=FF
+fdisk -type=L -unit=k -name=Part15 -size=1536 -driveletter=B -fit=BF
+fdisk -type=L -unit=k -name=Part16 -size=1536 -driveletter=B -fit=WF
+fdisk -type=L -unit=k -name=Part17 -size=1536 -driveletter=B -fit=BF
+fdisk -type=L -unit=k -name=Part18 -size=1536 -driveletter=B -fit=FF
+fdisk -type=L -unit=k -name=Part19 -size=1536 -driveletter=B -fit=BF
+fdisk -type=L -unit=k -name=Part20 -size=1536 -driveletter=B -fit=FF
+fdisk -type=L -unit=k -name=Part21 -size=1536 -driveletter=B -fit=BF
+fdisk -type=L -unit=k -name=Part22 -size=1536 -driveletter=B -fit=wF
+fdisk -type=L -unit=k -name=Part23 -size=1536 -driveletter=B -fit=BF
+fdisk -type=L -unit=k -name=Part24 -size=1536 -driveletter=B -fit=FF
+# LIBRE DISCO 2: 50-45 = 5 -> 10%
+# LIBRE EXTENDIDA 2: 20-13*1.5 = 0.5 -> 2.5% (por los EBR deberia ser menos)
+#PASSED
+
 

@@ -108,7 +108,8 @@ func ExtractFdiskParams(params []string) (int64, string, string, string, string,
 		case strings.HasPrefix(param, "-fit="):
 			fit = strings.TrimPrefix(param, "-fit=")
 			// Validar el ajuste de la partición
-			if fit != "BF" && fit != "FF" && fit != "WF" {
+			fit = strings.ToLower(fit)
+			if fit != "bf" && fit != "ff" && fit != "wf" {
 				return 0, "", "", "", "", "", "", 0, fmt.Errorf("Parametro fit invalido")
 			}
 		case strings.HasPrefix(param, "-delete="):
@@ -198,7 +199,7 @@ func calculateTotalUsedSpace(mbr Types.MBR) (int32, error) {
 }
 
 func createPartition(mbr *Types.MBR, start int64, size int32, unit string, typePart, fit, name string, diskFileName string) error {
-	fmt.Println("createPartition: ", start, size, unit, typePart, fit, name, diskFileName)
+	//fmt.Println("createPartition: ", start, size, unit, typePart, fit, name, diskFileName)
 
 	var sizeInBytes int32 = 0
 	unit = strings.ToLower(unit)
@@ -255,27 +256,30 @@ func createPartition(mbr *Types.MBR, start int64, size int32, unit string, typeP
 		})
 
 		_, exists1 := GetLogicalPartition(diskFileName)
-		if exists1 {
-			fmt.Println("logical partition created successfully")
-		} else {
-			fmt.Println("logical partition requires an extended partition")
+		// if exists1 {
+		// 	fmt.Println("particion lógica creada correctamente")
+		// } else {
+		// 	fmt.Println("crear una partición lógica requiere una partición extendida en el disco")
+		// }
+		if !exists1 {
+			return fmt.Errorf("crear una partición lógica requiere una partición extendida en el disco")
 		}
 	}
 
 	// Logical Partition Check
 	if typePart == "L" {
-		fmt.Println("logical partition to be created")
+		//fmt.Println("logical partition to be created")
 		// Use GetLogicalPartition to check if the extended partition exists
 		info, exists := GetLogicalPartition(diskFileName)
 		if !exists {
-			return fmt.Errorf("logical partition requires an extended partition")
+			return fmt.Errorf("crear una partición lógica requiere una partición extendida en el disco")
 		}
 
 		var extendedPartition *Types.Partition
 		var err error
 		extendedPartition, err = GetExtendedPartition(diskFileName)
 		if err != nil {
-			return fmt.Errorf("logical partition requires an extended partition in the MBR")
+			return fmt.Errorf("crear una partición lógica requiere una partición extendida en el MBR")
 		}
 		var sizeInBytesExtended int32 = int32(extendedPartition.Size)
 		fmt.Println("sizeInBytesExtended:", sizeInBytesExtended)
@@ -351,12 +355,13 @@ func AdjustAndCreatePartition(mbr *Types.MBR, size int32, unit, typePart, fit, n
 	spaces := calculateAvailableSpaces(mbr)
 	var selectedSpace *Space
 
+	fit = strings.ToLower(fit)
 	switch fit {
-	case "FF":
+	case "ff":
 		selectedSpace = findFirstFit(spaces, size)
-	case "BF":
+	case "bf":
 		selectedSpace = findBestFit(spaces, size)
-	case "WF":
+	case "wf":
 		selectedSpace = findWorstFit(spaces, size)
 	default: //WF por defecto
 		selectedSpace = findWorstFit(spaces, size)
@@ -442,14 +447,14 @@ func ValidatePartitionTypeCreation(mbr *Types.MBR, partType string) error {
 		}
 	}
 
-	fmt.Println("countP:", countP)
-	fmt.Println("countE:", countE)
+	// fmt.Println("countP:", countP)
+	// fmt.Println("countE:", countE)
 
-	if partType == "E" && countE > 0 {
+	if partType == "E" && countE > 1 {
 		return fmt.Errorf("Ya existe una partición extendida en el disco")
 	}
 
-	if (partType == "P" || partType == "E") && (countP+countE) > 4 {
+	if (partType == "P" || partType == "E") && (countP+countE) > 5 {
 		return fmt.Errorf("No se pueden crear más particiones primarias o extendidas (límite de 4)")
 	}
 

@@ -99,12 +99,13 @@ func PrintMBRv2(mbr Types.MBR) {
 
 func ReturnFitType(fitType string) [1]byte {
 	var fitByte byte
+	fitType = strings.ToLower(fitType)
 	switch fitType {
-	case "BF":
+	case "bf":
 		fitByte = 'B'
-	case "FF":
+	case "ff":
 		fitByte = 'F'
-	case "WF":
+	case "wf":
 		fitByte = 'W'
 	default:
 		fitByte = 'F' // FF es el valor predeterminado

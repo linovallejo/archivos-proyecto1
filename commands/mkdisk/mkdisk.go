@@ -52,7 +52,8 @@ func ExtractMkdiskParams(params []string) (int64, string, string, error) {
 			}
 		} else if strings.HasPrefix(param, "-fit=") {
 			fit = strings.TrimPrefix(param, "-fit=")
-			if fit != "FF" && fit != "BF" && fit != "WF" {
+			fit = strings.ToLower(fit)
+			if fit != "ff" && fit != "bf" && fit != "wf" {
 				return 0, "", "", fmt.Errorf("Parametro ajuste invalido")
 			}
 		}

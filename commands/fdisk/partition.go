@@ -23,6 +23,7 @@ func AddOrUpdateLogicalPartition(diskFileName string, info *LogicalPartitionInfo
 
 // Exported function to retrieve a logical partition
 func GetLogicalPartition(diskFileName string) (*LogicalPartitionInfo, bool) {
+	//fmt.Println("GetLogicalPartition: ", logicalPartitions[diskFileName])
 	info, exists := logicalPartitions[diskFileName]
 	return info, exists
 }
@@ -36,7 +37,7 @@ func SetFirstEBR(diskFileName string, newEBR *Types.EBR) error {
 
 	// Set the first EBR for this logical partition
 	info.FirstEBR = newEBR
-	fmt.Println("First EBR set for disk", diskFileName)
+	//fmt.Println("First EBR set for disk", diskFileName)
 	return nil
 }
 
@@ -59,6 +60,6 @@ func AddEBRToChain(diskFileName string, newEBR *Types.EBR) error {
 
 	// Append the new EBR to the end of the chain
 	currentEBR.PartNext = newEBR
-	fmt.Println("EBR added to chain for disk", diskFileName)
+	//fmt.Println("EBR added to chain for disk", diskFileName)
 	return nil
 }
