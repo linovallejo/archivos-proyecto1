@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	Types "proyecto1/types"
@@ -126,9 +127,9 @@ func ExtractFdiskParams(params []string) (int64, string, string, string, string,
 				fmt.Println("Parametro add invalido")
 				continue
 			}
-			if addValue < 0 {
-				fmt.Println("Parametro add es negativo")
-			}
+			// if addValue < 0 {
+			// 	fmt.Println("Parametro add es negativo")
+			// }
 		}
 	}
 
@@ -806,7 +807,7 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) string {
 	return dot.String()
 }
 
-func ValidatePartitionName(mbr *Types.MBR, name string, delete string) error {
+func ValidatePartitionName(mbr *Types.MBR, name string, delete string, addValue int64) error {
 	partitionExists := false
 
 	// fmt.Println("Validando nombre de la partición:", name)
@@ -823,7 +824,7 @@ func ValidatePartitionName(mbr *Types.MBR, name string, delete string) error {
 		}
 	}
 
-	if delete == "full" {
+	if delete == "full" || addValue < 0 || addValue > 0 {
 		if !partitionExists {
 			return fmt.Errorf("la partición a eliminar %s no existe", name)
 		}
@@ -874,14 +875,15 @@ func DeletePartition(mbr *Types.MBR, filename string, name string) error {
 		return fmt.Errorf("eliminación cancelada por el usuario")
 	}
 
-	fmt.Println("getPartitionDetails")
+	//fmt.Println("getPartitionDetails")
 	// Rellenar con `\0`
 	start, size, err := getPartitionDetails(mbr, name)
 	if err != nil {
 		fmt.Println(err)
-	} else {
-		fmt.Printf("La partición '%s' comienza en %d bytes y tiene un tamaño de %d bytes.\n", name, start, size)
 	}
+	// else {
+	// 	fmt.Printf("La partición '%s' comienza en %d bytes y tiene un tamaño de %d bytes.\n", name, start, size)
+	// }
 
 	// TODO
 	// Eliminar la partición
@@ -895,7 +897,7 @@ func DeletePartition(mbr *Types.MBR, filename string, name string) error {
 	mbr.Partitions[partitionIndex] = Types.Partition{} // Asigna una partición vacía
 	WriteMBR(filename, *mbr)
 
-	fmt.Println("cleanPartitionSpace")
+	//fmt.Println("cleanPartitionSpace")
 	err = cleanPartitionSpace(filename, int64(start), int64(size))
 	if err != nil {
 		fmt.Printf("Error al limpiar el espacio de la partición: %v\n", err)
@@ -941,38 +943,67 @@ func getPartitionDetails(mbr *Types.MBR, name string) (int32, int32, error) {
 	return 0, 0, fmt.Errorf("la partición '%s' no se encontró", name)
 }
 
-func canAdjustPartitionSize(mbr *Types.MBR, partitionIndex int, sizeInBytes int64) bool {
+func canAdjustPartitionSize(mbr *Types.MBR, partitionIndex int, sizeInBytes int64) (bool, error) {
 	currentPartition := mbr.Partitions[partitionIndex]
-	fmt.Println("Partición actual:", currentPartition)
-	fmt.Println("Espacio a ajustar:", sizeInBytes)
+	// fmt.Println("Partición actual:", currentPartition)
+	// fmt.Println("Espacio a ajustar:", sizeInBytes)
 
-	// Verificar si se reduce el tamaño y se mantiene positivo
-	if sizeInBytes < 0 && (int64(currentPartition.Size)+sizeInBytes) < 0 {
-		return false // No se puede reducir la partición a tamaño negativo
+	var operationType string = ""
+	if sizeInBytes < 0 {
+		operationType = "reducir"
+	} else {
+		operationType = "aumentar"
 	}
 
-	// Verificar si se puede expandir la partición
-	if sizeInBytes > 0 {
-		// Calcula el espacio total utilizado por todas las particiones
+	if operationType == "aumentar" {
 		var totalUsedSpace int64 = 0
 		for _, partition := range mbr.Partitions {
 			if partition.Status != [1]byte{0} { // Asume Status != 0 como partición activa
 				totalUsedSpace += int64(partition.Size) // Convert partition.Size to int64 before adding
 			}
 		}
-		fmt.Println("Espacio utilizado:", totalUsedSpace)
+		//fmt.Println("Espacio utilizado:", totalUsedSpace)
 
 		// Espacio disponible en el disco
 		spaceAvailable := int64(mbr.MbrTamano) - totalUsedSpace
-		fmt.Println("Espacio disponible:", spaceAvailable)
+		//fmt.Println("Espacio disponible:", spaceAvailable)
 
-		// Verificar si el espacio disponible es suficiente para la expansión
 		if sizeInBytes > spaceAvailable {
-			return false // No hay suficiente espacio para expandir
+			return false, fmt.Errorf("no hay suficiente espacio disponible para ajustar la partición") // No hay suficiente espacio para ajustar la partición
+		} else {
+			return true, nil
+		}
+	} else if operationType == "reducir" {
+		var partitionSize int64 = int64(currentPartition.Size)
+
+		if (partitionSize - int64(math.Abs(float64(sizeInBytes)))) < 0 {
+			return false, fmt.Errorf("el tamaño de la partición no puede ser reducido a menos de 0")
+		} else {
+			return true, nil
 		}
 	}
 
-	return true // El ajuste de tamaño es viable
+	// if sizeInBytes < 0 && (partitionSize-int64(math.Abs(float64(sizeInBytes)))) < 0 {
+	// 	return false // No se puede reducir la partición a tamaño negativo
+	// }
+
+	// //if (sizeInBytes < 0 && partitionSize - math.Abs(sizeInBytes) < 0) || (sizeInBytes > 0 && partitionSize + sizeInBytes > int64(mbr.MbrTamano)) {
+
+	// // Verificar si se reduce el tamaño y se mantiene positivo
+	// if sizeInBytes < 0 && (int64(currentPartition.Size)+sizeInBytes) < 0 {
+	// 	return false // No se puede reducir la partición a tamaño negativo
+	// }
+
+	// // Verificar si se puede expandir la partición
+	// if sizeInBytes > 0 {
+	// 	// Calcula el espacio total utilizado por todas las particiones
+
+	// 	// Verificar si el espacio disponible es suficiente para la expansión
+	// 	if sizeInBytes > spaceAvailable {
+	// 		return false // No hay suficiente espacio para expandir
+	// 	}
+	// }
+	return true, nil
 }
 
 func findPartitionByName(mbr *Types.MBR, partitionName string) (int, Types.Partition) {
@@ -987,6 +1018,7 @@ func findPartitionByName(mbr *Types.MBR, partitionName string) (int, Types.Parti
 }
 
 func convertUnitToAddValue(addValue int64, unit string) int64 {
+	unit = strings.ToUpper(unit)
 	switch unit {
 	case "B":
 		return addValue
@@ -1003,8 +1035,8 @@ func AdjustPartitionSize(mbr *Types.MBR, partitionName string, addValue int64, u
 	// Conversión del valor add según la unidad
 	var sizeInBytes int64 = convertUnitToAddValue(addValue, unit)
 
-	fmt.Println("Espacio a ajustar:", sizeInBytes)
-	fmt.Println("Partición:", partitionName)
+	// fmt.Println("Espacio a ajustar:", sizeInBytes)
+	// fmt.Println("Partición:", partitionName)
 
 	// partitionIndex, _ := findPartitionByName(mbr, partitionName)
 	// if partitionIndex == -1 {
@@ -1020,14 +1052,18 @@ func AdjustPartitionSize(mbr *Types.MBR, partitionName string, addValue int64, u
 		}
 	}
 
-	fmt.Println("Partición encontrada:", partitionIndex)
+	//fmt.Println("Partición encontrada:", partitionIndex)
 
 	// Verifica si se puede agregar o quitar espacio
-	if !canAdjustPartitionSize(mbr, int(partitionIndex), sizeInBytes) {
-		return fmt.Errorf("no es posible ajustar el tamaño de la partición '%s'", partitionName)
+	canAdjust, err := canAdjustPartitionSize(mbr, int(partitionIndex), sizeInBytes)
+	if err != nil {
+		return err
+	}
+	if !canAdjust {
+		return fmt.Errorf(err.Error())
 	}
 
-	fmt.Println("Ajustando el tamaño de la partición...")
+	//fmt.Println("Ajustando el tamaño de la partición...")
 
 	// Ajusta el tamaño de la partición
 	mbr.Partitions[partitionIndex].Size += int32(sizeInBytes)

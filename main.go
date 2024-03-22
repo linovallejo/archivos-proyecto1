@@ -257,7 +257,7 @@ func fdisk(params []string) {
 	}
 
 	// Validar el nombre de la partición
-	err = Fdisk.ValidatePartitionName(mbr, name, delete)
+	err = Fdisk.ValidatePartitionName(mbr, name, delete, addValue)
 	if err != nil {
 		fmt.Println("Error al validar el nombre de la partición:", err)
 	}
@@ -320,7 +320,9 @@ func fdisk(params []string) {
 	if addValue > 0 || addValue < 0 {
 		err = Fdisk.AdjustPartitionSize(mbr, name, addValue, unit, archivoBinarioDisco)
 		if err != nil {
-			fmt.Println("Error al ajustar el tamaño de la partición:", err)
+			fmt.Println("Error:", err)
+		} else {
+			fmt.Println("Tamaño de la partición ajustado exitosamente.")
 		}
 		return
 	}

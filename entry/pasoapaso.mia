@@ -53,4 +53,18 @@ fdisk -type=L -unit=k -name=Part24 -size=1536 -driveletter=B -fit=FF
 # LIBRE EXTENDIDA 2: 20-13*1.5 = 0.5 -> 2.5% (por los EBR deberia ser menos)
 #PASSED
 
+#DISCO 3
+fdisk -type=P -unit=m -name=Part25 -size=20 -driveletter=C    # 20M #ERR FALTA ESPACIO
+fdisk -type=P -unit=m -name=Part26 -size=4 -driveletter=C     #4M
+fdisk -type=P -unit=m -name=Part27 -size=4 -driveletter=C     #4M
+fdisk -type=P -unit=m -name=Part28 -size=1 -driveletter=C     #1M
+#LIBRE DISCO 3: 14-9= 5 -> 35.71%
+#PASSED
 
+#ELIMINAR Y AGREGAR ESPACIO DISCO 3
+fdisk -add=-1000 -unit=m -driveletter=C -name=Part26 # ERR SIZE NEGATIVO
+fdisk -add=1000 -unit=m -driveletter=C -name=Part26 # ERR PARTICION NO TIENE ESPACIO
+fdisk -add=-2 -unit=m -driveletter=C -name=Part26 # 4-2= 2M
+fdisk -delete=full -name=Part27 -driveletter=C # 0
+fdisk -add=4 -unit=m -driveletter=C -name=Part28 # 4+1= 5M
+#LIBRE DISCO 3: 14-7 = 3 -> 50%
