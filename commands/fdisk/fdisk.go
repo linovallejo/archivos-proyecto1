@@ -283,8 +283,8 @@ func createPartition(mbr *Types.MBR, start int64, size int32, unit string, typeP
 			return fmt.Errorf("crear una partición lógica requiere una partición extendida en el MBR")
 		}
 		var sizeInBytesExtended int32 = int32(extendedPartition.Size)
-		fmt.Println("sizeInBytesExtended:", sizeInBytesExtended)
-		fmt.Println("sizeInBytesLogical:", sizeInBytes)
+		// fmt.Println("sizeInBytesExtended:", sizeInBytesExtended)
+		// fmt.Println("sizeInBytesLogical:", sizeInBytes)
 
 		if info.FirstEBR == nil {
 			if sizeInBytesExtended < sizeInBytes {
@@ -321,11 +321,11 @@ func createPartition(mbr *Types.MBR, start int64, size int32, unit string, typeP
 		if info.FirstEBR == nil {
 			// Direct modification is no longer appropriate; you might need a function to update this.
 			SetFirstEBR(diskFileName, newEBR)
-			fmt.Println("First EBR set for disk", diskFileName)
+			//fmt.Println("First EBR set for disk", diskFileName)
 		} else {
 			// Similarly, logic to add the EBR to the chain would be encapsulated in a function
 			AddEBRToChain(diskFileName, newEBR)
-			fmt.Println("EBR added to chain for disk", diskFileName)
+			//fmt.Println("EBR added to chain for disk", diskFileName)
 		}
 
 	}

@@ -68,3 +68,13 @@ fdisk -add=-2 -unit=m -driveletter=C -name=Part26 # 4-2= 2M
 fdisk -delete=full -name=Part27 -driveletter=C # 0
 fdisk -add=4 -unit=m -driveletter=C -name=Part28 # 4+1= 5M
 #LIBRE DISCO 3: 14-7 = 3 -> 50%
+
+#DISCO 5
+fdisk -type=E -unit=k -name=Part29 -size=5120 -driveletter=E -fit=BF # 5MB
+fdisk -type=L -unit=k -name=Part30 -size=1024 -driveletter=E -fit=BF # 1MB
+fdisk -type=P -unit=k -name=Part31 -size=5120 -driveletter=E -fit=BF # 5MB
+fdisk -type=L -unit=k -name=Part32 -size=1024 -driveletter=E -fit=BF # 1MB
+fdisk -type=L -unit=k -name=Part33 -size=1024 -driveletter=E -fit=BF # 1MB
+fdisk -type=L -unit=k -name=Part34 -size=1024 -driveletter=E -fit=BF # 1MB
+# LIBRE DISCO 5: 20-10 = 5 -> 50%
+# LIBRE EXTENDIDA 2: 5-4 = 1 -> 20% (por los EBR deberia ser menos)
