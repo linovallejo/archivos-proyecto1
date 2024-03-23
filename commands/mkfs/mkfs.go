@@ -92,7 +92,7 @@ func MakeFileSystem(diskFileName string, id string, type_ string, fs_ string) er
 			//fmt.Println("Partition start:", TempMBR.Partitions[i].Start)
 			fmt.Println("Partition status:", string(TempMBR.Partitions[i].Status[:]))
 			if strings.Contains(string(TempMBR.Partitions[i].Id[:]), id) {
-				fmt.Println("Partition found")
+				//fmt.Println("Partition found")
 				if TempMBR.Partitions[i].Status[0] == 1 {
 					fmt.Println("Partition is mounted")
 					index = i
@@ -109,7 +109,7 @@ func MakeFileSystem(diskFileName string, id string, type_ string, fs_ string) er
 		PrintPartition(TempMBR.Partitions[index])
 	} else {
 		//fmt.Println("Partition not found")
-		return fmt.Errorf("Partition not found")
+		return fmt.Errorf("partición no existe")
 	}
 
 	var today string = time.Now().Format("02/01/2006")

@@ -370,7 +370,6 @@ func mount(params []string) {
 	if err != nil {
 		fmt.Println("Error al procesar los parámetros MOUNT:", err)
 	}
-	var result int
 
 	// Leer el MBR existente
 	filename := driveletter + ".dsk"
@@ -382,20 +381,31 @@ func mount(params []string) {
 
 	mbr, err := Fdisk.ReadMBR(archivoBinarioDisco)
 	if err != nil {
-		fmt.Println("Error leyendo el MBR:", err)
+		//fmt.Println("Error leyendo el MBR:", err)
 		return
 	}
 
-	result, err = Mount.MountPartition(mbr, archivoBinarioDisco, driveletter, name)
+	_, err = Mount.MountPartition(mbr, archivoBinarioDisco, driveletter, name)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error al montar la partición: ", err)
+	} else {
+		partitionId, err := Fdisk.GetPartitionId(mbr, name)
+		if err != nil {
+			fmt.Printf("Error al buscar la partición %s: %e", name, err)
+			return
+		}
+		//fmt.Printf("Partición %s encontrada exitosamente antes del mount.\n", partitionId)
+
+		fmt.Printf("Partición %s montada exitosamente.\n", partitionId)
 	}
 
-	if result == 0 {
-		fmt.Println("Partición montada exitosamente.")
-	} else {
-		fmt.Println("Error al montar la partición.")
-	}
+	// if result == 0 && strings.TrimSpace(partitionId) != "" {
+	// 	fmt.Printf("Partición %s montada exitosamente.", partitionId)
+	// }
+
+	// else {
+	// 	fmt.Println("Error al montar la partición: ", err)
+	// }
 
 	// mbr, err = Fdisk.ReadMBR(archivoBinarioDisco)
 	// if err != nil {

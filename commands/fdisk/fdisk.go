@@ -1138,3 +1138,26 @@ func DeleteLogicalPartition(info *LogicalPartitionInfo, partitionName string) er
 
 	return nil
 }
+
+func GetPartitionId(mbr *Types.MBR, name string) (string, error) {
+	partitionId := ""
+	partitionExists := false
+
+	var partitionName string = ""
+	for _, partition := range mbr.Partitions {
+		partitionName = Utils.CleanPartitionName(partition.Name[:])
+		//fmt.Println("Particion:", string(partition.Name[:]))
+		if strings.TrimSpace(partitionName) == strings.TrimSpace(name) {
+			//fmt.Println("Particion encontrada:", string(partition.Name[:]))
+			partitionExists = true
+			partitionId = string(partition.Id[:])
+			break
+		}
+	}
+
+	if !partitionExists {
+		return "", fmt.Errorf("la partición %s no existe", name)
+	}
+
+	return partitionId, nil
+}

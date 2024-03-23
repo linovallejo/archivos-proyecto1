@@ -78,3 +78,11 @@ fdisk -type=L -unit=k -name=Part33 -size=1024 -driveletter=E -fit=BF # 1MB
 fdisk -type=L -unit=k -name=Part34 -size=1024 -driveletter=E -fit=BF # 1MB
 # LIBRE DISCO 5: 20-10 = 5 -> 50%
 # LIBRE EXTENDIDA 2: 5-4 = 1 -> 20% (por los EBR deberia ser menos)
+
+#MONTAR PARTICIONES---------------------------------------------------
+#DISCO X
+mount -driveletter=A -name=Part5 #ERR PARTICION NO EXISTE
+#DISCO 1
+mount -driveletter=A -name=Part1 #A123 -> id1 -> cambiar el 191a por el ID que a ustedes les genera
+mount -driveletter=A -name=Part2 #A223 -> id2 -> cambiar el 191b por el ID que a ustedes les genera
+mount -driveletter=A -name=Part1 #ERR PARTICION YA MONTADA

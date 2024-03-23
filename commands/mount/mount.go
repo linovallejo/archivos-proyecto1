@@ -11,9 +11,9 @@ import (
 )
 
 func MountPartition(mbr *Types.MBR, diskFileName string, driveletter string, name string) (int, error) {
-	fmt.Println("======Start MOUNT======")
-	fmt.Println("Driveletter:", driveletter)
-	fmt.Println("Name:", name)
+	// fmt.Println("======Start MOUNT======")
+	// fmt.Println("Driveletter:", driveletter)
+	// fmt.Println("Name:", name)
 
 	// Open bin file
 	file, err := Utilities.AbrirArchivo(diskFileName)
@@ -21,30 +21,48 @@ func MountPartition(mbr *Types.MBR, diskFileName string, driveletter string, nam
 		return -1, err
 	}
 
-	fmt.Println("-------------")
+	//fmt.Println("-------------")
 
 	var index int = -1
 	var count = 0
 	// Iterate over the partitions
+	//fmt.Println("################")
+	var partitionStatusStr string = ""
 	for i := 0; i < 4; i++ {
+		//fmt.Println("*********************")
+		partitionStatus := mbr.Partitions[i].Status[0]
+		partitionStatusStr = strconv.Itoa(int(partitionStatus))
+
+		// fmt.Println(string(mbr.Partitions[i].Id[:]))
+		// fmt.Println(string(mbr.Partitions[i].Name[:]))
+		// fmt.Println(partitionStatus)
+		// fmt.Println(strconv.Itoa(int(mbr.Partitions[i].Size))[:])
 		if mbr.Partitions[i].Size != 0 {
+			//fmt.Printf("Count: %d\n", count)
 			count++
 			if strings.Contains(string(mbr.Partitions[i].Name[:]), name) {
+				//fmt.Println("Gotcha!")
 				index = i
+				//fmt.Printf("Index: %d\n", index)
 				break
 			}
 		}
 	}
 
-	if index != -1 {
-		fmt.Println("Partition found")
-	} else {
+	if index < 0 {
 		defer file.Close()
-		fmt.Println("Partition not found")
-		return -1, nil
+		//fmt.Println("Partition not found")
+		return -1, fmt.Errorf("partición no existe")
 	}
 
-	if strings.Contains(string(mbr.Partitions[index].Status[:]), "1") {
+	// if index >= 0 {
+	// 	defer file.Close()
+	// 	//fmt.Println("Partition not found")
+	// 	return -1, fmt.Errorf("partición no existe misha")
+
+	// }
+
+	if partitionStatusStr == "1" {
 		defer file.Close()
 		return -1, fmt.Errorf("no es posible montar una particion que ya se encuentra montada")
 	}
@@ -73,7 +91,7 @@ func MountPartition(mbr *Types.MBR, diskFileName string, driveletter string, nam
 	// Close bin file
 	defer file.Close()
 
-	fmt.Println("======End MOUNT======")
+	//fmt.Println("======End MOUNT======")
 
 	return 0, nil
 }
