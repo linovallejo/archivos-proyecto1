@@ -162,16 +162,22 @@ func ExtractMountParams(params []string) (string, string, error) {
 }
 
 func UnmountPartition(mbr *Types.MBR, id string, diskFileName string) (int, error) {
-	fmt.Println("======Start UNMOUNT======")
-	fmt.Println("Id:", id)
-	fmt.Println("Disk File Name:", diskFileName)
+	// fmt.Println("======Start UNMOUNT======")
+	// fmt.Println("Id:", id)
+	// fmt.Println("Disk File Name:", diskFileName)
 
+	var partitionStatusStr string = ""
 	var partitionIndex int = -1
 	for i := 0; i < 4; i++ {
+		partitionStatus := mbr.Partitions[i].Status[0]
+		partitionStatusStr = strconv.Itoa(int(partitionStatus))
 		if strings.Contains(string(mbr.Partitions[i].Id[:]), id) {
 			partitionIndex = i
 			break
 		}
+	}
+	if partitionStatusStr == "0" {
+		return -1, fmt.Errorf("la partición ya no se encuentra montada")
 	}
 	if partitionIndex >= 0 {
 		//fmt.Println("Partition Index:", partitionIndex)
@@ -187,10 +193,10 @@ func UnmountPartition(mbr *Types.MBR, id string, diskFileName string) (int, erro
 			return -1, err
 		}
 
-		fmt.Println("======End UNMOUNT======")
+		//fmt.Println("======End UNMOUNT======")
 		return 0, nil
 	} else {
-		return -1, fmt.Errorf("No se encontro la partición")
+		return -1, fmt.Errorf("no se encontró la partición")
 	}
 }
 

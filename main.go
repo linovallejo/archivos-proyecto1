@@ -148,7 +148,7 @@ func main() {
 					// Utils.PrintMBRv3(TempMBR3)
 				case strings.HasPrefix(commandLower, "unmount"):
 					params := strings.Fields(command)
-					unmount(params[1:], archivoBinarioDiscoActual)
+					unmount(params[1:])
 				case strings.HasPrefix(commandLower, "rep"):
 					params := strings.Fields(command)
 					rep(archivoBinarioDiscoActual, params[1:])
@@ -416,11 +416,23 @@ func mount(params []string) {
 
 }
 
-func unmount(params []string, archivoBinarioDisco string) {
+func unmount(params []string) {
 	id, err := Mount.ExtractUnmountParams(params)
 	if err != nil {
 		fmt.Println("Error al procesar los parámetros UNMOUNT:", err)
 	}
+
+	driveletter := string(id[0])
+	filename := driveletter + ".dsk"
+	//fmt.Println("filename:", filename)
+
+	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	//fmt.Println("archivoBinarioDisco:", archivoBinarioDisco)
 
 	// Leer el MBR existente
 	mbr, err := Fdisk.ReadMBR(archivoBinarioDisco)
@@ -443,7 +455,7 @@ func unmount(params []string, archivoBinarioDisco string) {
 
 	_, err = Mount.UnmountPartition(mbr, id, archivoBinarioDisco)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Error al desmontar la partición: %s\n", err)
 	} else {
 		fmt.Println("Partición desmontada exitosamente.")
 	}

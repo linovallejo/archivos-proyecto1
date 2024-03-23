@@ -94,3 +94,11 @@ mount -driveletter=B -name=Part9 #192b -> id4 -> cambiar el 192b por el ID que a
 mount -driveletter=C -name=Part26 #193a -> id5 -> cambiar el 193a por el ID que a ustedes les genera
 #DISCO 5
 mount -driveletter=E -name=Part31 #194a -> id6 -> cambiar el 194a por el ID que a ustedes les genera
+
+#DESMONTAR PARTICIONES---------------------------------------------------
+unmount -id=A523 #ERR NO EXISTE ID
+#DISCO 1
+unmount -id=A123 #-> id1
+unmount -id=A123 #ERR PARTICION YA DESMONTADA -> id1
+#DISCO 2
+unmount -id=A223 #-> id4
