@@ -28,10 +28,13 @@ func MountPartition(mbr *Types.MBR, diskFileName string, driveletter string, nam
 	// Iterate over the partitions
 	//fmt.Println("################")
 	var partitionStatusStr string = ""
+	var partitionType string = ""
+
 	for i := 0; i < 4; i++ {
 		//fmt.Println("*********************")
 		partitionStatus := mbr.Partitions[i].Status[0]
 		partitionStatusStr = strconv.Itoa(int(partitionStatus))
+		partitionType = string(mbr.Partitions[i].Type[:])
 
 		// fmt.Println(string(mbr.Partitions[i].Id[:]))
 		// fmt.Println(string(mbr.Partitions[i].Name[:]))
@@ -53,6 +56,10 @@ func MountPartition(mbr *Types.MBR, diskFileName string, driveletter string, nam
 		defer file.Close()
 		//fmt.Println("Partition not found")
 		return -1, fmt.Errorf("partición no existe")
+	}
+
+	if partitionType == "E" || partitionType == "L" {
+		return -1, fmt.Errorf("no es posible montar una partición extendida o lógica")
 	}
 
 	// if index >= 0 {
