@@ -86,3 +86,11 @@ mount -driveletter=A -name=Part5 #ERR PARTICION NO EXISTE
 mount -driveletter=A -name=Part1 #A123 -> id1 -> cambiar el 191a por el ID que a ustedes les genera
 mount -driveletter=A -name=Part2 #A223 -> id2 -> cambiar el 191b por el ID que a ustedes les genera
 mount -driveletter=A -name=Part1 #ERR PARTICION YA MONTADA
+#DISCO 2
+mount -driveletter=B -name=Part11 #ERR MONTAR EXTENDIDA
+mount -driveletter=B -name=Part8 #192a -> id3 -> cambiar el 192a por el ID que a ustedes les genera
+mount -driveletter=B -name=Part9 #192b -> id4 -> cambiar el 192b por el ID que a ustedes les genera
+#DISCO 3
+mount -driveletter=C -name=Part26 #193a -> id5 -> cambiar el 193a por el ID que a ustedes les genera
+#DISCO 5
+mount -driveletter=E -name=Part31 #194a -> id6 -> cambiar el 194a por el ID que a ustedes les genera
