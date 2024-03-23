@@ -191,6 +191,7 @@ func UnmountPartition(mbr *Types.MBR, id string, diskFileName string) (int, erro
 		var partitionToUnmount Types.Partition = mbr.Partitions[partitionIndex]
 		//fmt.Println("Partition to unmount:", partitionToUnmount)
 		partitionToUnmount.Status[0] = 0
+		partitionToUnmount.Id = [4]byte{0, 0, 0, 0}
 		//fmt.Println("Partition unmounted:", partitionToUnmount)
 
 		mbr.Partitions[partitionIndex] = partitionToUnmount
