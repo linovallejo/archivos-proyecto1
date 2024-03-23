@@ -7,6 +7,7 @@ del .\disks\MIA\P1\*.dsk
 # Delete files starting with "disk" and "mbr" in the reportes directory
 del .\reportes\mbr*.*
 del .\reportes\disk*.* 
+del .\reportes\reporte*.*
 
 # Run the Go program
 go run .

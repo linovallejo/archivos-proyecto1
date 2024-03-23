@@ -23,6 +23,7 @@ go.work
 # Proyecto1
 *.dot
 *.png
+*.jpg
 *.dsk
 *.pdf
 *.txt

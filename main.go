@@ -151,7 +151,7 @@ func main() {
 					unmount(params[1:])
 				case strings.HasPrefix(commandLower, "rep"):
 					params := strings.Fields(command)
-					rep(archivoBinarioDiscoActual, params[1:])
+					rep(params[1:])
 				case strings.HasPrefix(commandLower, "pause"):
 					fmt.Println("Presione cualquier tecla para continuar...")
 					fmt.Scanln()
@@ -432,7 +432,7 @@ func unmount(params []string) {
 		return
 	}
 
-	//fmt.Println("archivoBinarioDisco:", archivoBinarioDisco)
+	fmt.Println("archivoBinarioDisco:", archivoBinarioDisco)
 
 	// Leer el MBR existente
 	mbr, err := Fdisk.ReadMBR(archivoBinarioDisco)
@@ -538,42 +538,65 @@ func mkfs(params []string, archivoBinarioDisco string) {
 	}
 }
 
-func rep(diskFileName string, params []string) {
-	// Leer el MBR existente
-	// fmt.Println("diskFileName:", diskFileName)
-	mbr, err := Fdisk.ReadMBR(diskFileName)
-	if err != nil {
-		fmt.Println("Error leyendo el MBR:", err)
-		return
-	}
-	// Utils.LineaDoble(60)
-	// fmt.Println("mbr in rep:", mbr)
-	// for i, p := range mbr.Partitions {
-	// 	fmt.Printf("Partición %d: %+v\n", i+1, p)
-	// }
-
+func rep(params []string) {
 	id, reportName, reportPathAndFileName, err := Rep.ExtractRepParams(params)
+	fmt.Printf("id: %s, reportName: %s, reportPathAndFileName: %s\n", id, reportName, reportPathAndFileName)
 
 	if err != nil {
 		fmt.Println("Error al procesar los parámetros REP:", err)
 	}
 
+	driveletter := string(id[0])
+	filename := driveletter + ".dsk"
+	fmt.Println("filename in rep:", filename)
+
+	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println("archivoBinarioDisco:", archivoBinarioDisco)
+
 	// Leer el MBR existente
-	// mbr, err := Fdisk.ReadMBR(diskFileName)
-	// if err != nil {
-	// 	fmt.Println("Error leyendo el MBR:", err)
-	// 	return
-	// }
+	mbr, err := Fdisk.ReadMBR(archivoBinarioDisco)
+	if err != nil {
+		fmt.Println("Error leyendo el MBR:", err)
+		return
+	}
 
 	var dotCode string
 	switch reportName {
 	case "mbr":
-		dotCode = Fdisk.GenerateDotCodeMbr(mbr, diskFileName)
+		fmt.Printf("Identificador: [%s]\n", id)
+		_, err = Fdisk.ValidatePartitionId(mbr, id)
+		if err != nil {
+			fmt.Println(err)
+			return
+		} else {
+			fmt.Println("Generard Mbr report")
+
+			dotCode = Fdisk.GenerateDotCodeMbr(mbr, archivoBinarioDisco)
+		}
+
 	case "disk":
-		dotCode = Fdisk.GenerateDotCodeDisk(mbr, diskFileName)
+		fmt.Printf("Identificador: [%s]\n", id)
+		_, err = Fdisk.ValidatePartitionId(mbr, id)
+		if err != nil {
+			fmt.Println(err)
+			return
+		} else {
+			fmt.Println("Generard Disk report")
+			dotCode, err = Fdisk.GenerateDotCodeDisk(mbr, archivoBinarioDisco)
+			if err != nil {
+				fmt.Println("Error generating disk report:", err)
+			} else {
+				fmt.Println(dotCode)
+			}
+		}
 	case "tree":
 		// Leer el MBR existente
-		mbr, err := Fdisk.ReadMBR(diskFileName)
+		mbr, err := Fdisk.ReadMBR(archivoBinarioDisco)
 		if err != nil {
 			fmt.Println("Error leyendo el MBR:", err)
 			return
@@ -602,7 +625,7 @@ func rep(diskFileName string, params []string) {
 		/// 	fmt.Println("Start:", partitionStart)
 		/// }
 
-		superblock, err := Mkfs.ReadSuperBlock(diskFileName, partitionStart)
+		superblock, err := Mkfs.ReadSuperBlock(archivoBinarioDisco, partitionStart)
 		if err != nil {
 			fmt.Println("Error reading superblock:", err)
 			return
@@ -610,13 +633,13 @@ func rep(diskFileName string, params []string) {
 
 		/// fmt.Println("Superblock in rep:", superblock)
 
-		inodes, err := Mkfs.ReadInodesFromFile(diskFileName, superblock)
+		inodes, err := Mkfs.ReadInodesFromFile(archivoBinarioDisco, superblock)
 		if err != nil {
 			fmt.Println("Error reading inodes:", err)
 			return
 		}
 
-		directoryBlocks, err := Mkfs.ReadDirectoryBlocksFromFile(diskFileName, superblock)
+		directoryBlocks, err := Mkfs.ReadDirectoryBlocksFromFile(archivoBinarioDisco, superblock)
 		if err != nil {
 			fmt.Println("Error reading directory blocks:", err)
 			return
@@ -631,11 +654,18 @@ func rep(diskFileName string, params []string) {
 		//fmt.Println("Dot Code:", dotCode)
 	}
 
+	//fmt.Printf("dotCode: %s\n", dotCode)
+
+	fmt.Printf("reportPathAndFileName: %s\n", reportPathAndFileName)
+
 	extension := filepath.Ext(reportPathAndFileName)
+	fmt.Printf("extension: %s\n", extension)
 	pathWithoutExt := reportPathAndFileName[:len(reportPathAndFileName)-len(extension)]
+	fmt.Printf("pathWithoutExt: %s\n", pathWithoutExt)
 
 	nombreArchivoDot := pathWithoutExt + ".dot"
 	nombreArchivoReporte := reportPathAndFileName
+	fmt.Printf("nombreArchivoReporte: %s\n", nombreArchivoReporte)
 	switch extension {
 	case ".pdf":
 		nombreArchivoReporte = pathWithoutExt + ".pdf"
@@ -643,12 +673,15 @@ func rep(diskFileName string, params []string) {
 		nombreArchivoReporte = pathWithoutExt + ".txt"
 	case ".png":
 		nombreArchivoReporte = pathWithoutExt + ".png"
+	case ".jpg":
+		nombreArchivoReporte = pathWithoutExt + ".jpg"
 	default:
 		nombreArchivoReporte = reportPathAndFileName
 	}
 
 	Reportes.CrearArchivo(nombreArchivoDot)
 	Reportes.EscribirArchivo(dotCode, nombreArchivoDot)
+	fmt.Printf("extension: %s\n", extension)
 	Reportes.Ejecutar(nombreArchivoReporte, nombreArchivoDot, extension)
 	// Reportes.VerReporte(nombreArchivoPng)
 }

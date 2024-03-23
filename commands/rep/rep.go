@@ -22,6 +22,7 @@ func ExtractRepParams(params []string) (string, string, string, error) {
 	var path string = ""
 
 	for _, param := range params {
+		//param = strings.ToLower(param)
 		if strings.HasPrefix(param, "-id=") {
 			id = strings.TrimPrefix(param, "-id=")
 			// Validar el id de la partición
@@ -31,8 +32,8 @@ func ExtractRepParams(params []string) (string, string, string, error) {
 			if !isValidReportName(name) {
 				return "", "", "", fmt.Errorf("Parametro nombre de reporte invalido")
 			}
-		} else if strings.HasPrefix(param, "-path=") {
-			path = strings.TrimPrefix(param, "-path=")
+		} else if strings.HasPrefix(strings.ToLower(param), "-path=") {
+			path = strings.TrimPrefix(strings.ToLower(param), "-path=")
 			trimmedPath := strings.Trim(path, "\"")
 
 			if err := Utils.EnsurePathExists(trimmedPath); err != nil {

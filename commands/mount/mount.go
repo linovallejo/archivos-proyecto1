@@ -1,6 +1,7 @@
 package Mount
 
 import (
+	"encoding/hex"
 	"fmt"
 	Fdisk "proyecto1/commands/fdisk"
 	Types "proyecto1/types"
@@ -243,15 +244,30 @@ func ExtractUnmountParams(params []string) (string, error) {
 func ValidatePartitionId(mbr *Types.MBR, id string) (string, error) {
 	var partitionId string = ""
 	for i := 0; i < 4; i++ {
-		if strings.Contains(string(mbr.Partitions[i].Id[:]), id) {
-			partitionId = string(mbr.Partitions[i].Id[:])
+		//fmt.Printf("Mount Particion: %+v\n", mbr.Partitions[i])
+
+		partitionId = Utilities.CleanPartitionName(mbr.Partitions[i].Id[:])
+		//fmt.Println("Partition Idxxxx:", partitionId)
+		if strings.Contains(partitionId, id) {
+			//partitionId = string(mbr.Partitions[i].Id[:])
 			break
 		}
 	}
 	if partitionId == "" {
 		return "", fmt.Errorf("No se encontró la partición con el id especificado")
 	}
+	fmt.Printf("Partition Encontrada: %s\n", partitionId)
 	return partitionId, nil
+}
+
+func ValidatePartitionIdV2(mbr *Types.MBR, id string) (string, error) {
+	for i := 0; i < 4; i++ {
+		partitionIdHex := hex.EncodeToString(mbr.Partitions[i].Id[:])
+		if strings.EqualFold(partitionIdHex, id) {
+			return partitionIdHex, nil
+		}
+	}
+	return "", fmt.Errorf("No se encontró la partición con el id especificado")
 }
 
 func GetPartitionStart(mbr *Types.MBR, id string) (int32, error) {

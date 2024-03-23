@@ -688,7 +688,7 @@ func GenerateDotCodeMbr(mbr *Types.MBR, diskFileName string) string {
 	return builder.String()
 }
 
-func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) string {
+func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) (string, error) {
 	var dot bytes.Buffer
 
 	dot.WriteString("digraph G {\n")
@@ -698,8 +698,10 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) string {
 
 	// var espacioLibreDisco = Mkdisk.CalcularEspacioLibreDisco(mbr)
 
+	fmt.Println("before GetLogicalPartition")
 	logicalPartitions, _ := GetLogicalPartition(diskFileName)
 	// fmt.Println("Espacio libre:", espacioLibreDisco)
+	fmt.Println("after GetLogicalPartition")
 
 	dot.WriteString("<tr>\n")
 	dot.WriteString("<td rowspan=\"2\">MBR</td>\n") // MBR siempre está presente
@@ -713,7 +715,7 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) string {
 	var particionesLibres int32 = 0
 	var dotLogicalPartitions bytes.Buffer
 
-	//fmt.Println("Espacio total:", espacioTotalDisco)
+	fmt.Println("Espacio total:", espacioTotalDisco)
 	for _, partition := range mbr.Partitions {
 		partitionName := Utils.CleanPartitionName(partition.Name[:])
 		partitionStatus := partition.Status[0]
@@ -721,7 +723,8 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) string {
 
 		if partitionStatus != 1 {
 			if partition.Size > 0 {
-				espacioLibre += espacioLibre + partition.Size
+				//espacioLibre += espacioLibre + partition.Size
+				espacioLibre += partition.Size
 				fmt.Println("Espacio libre:", espacioLibre)
 			} else {
 				particionesLibres++
@@ -780,6 +783,7 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) string {
 	}
 
 	espacioLibre = espacioTotalDisco - espacioOcupado - espacioLibre
+	fmt.Printf("Espacio libre final: %d\n", espacioLibre)
 	if particionesLibres > 0 || espacioLibre > 0 {
 		fmt.Println("Espacio total:", espacioTotalDisco)
 		fmt.Println("Espacio ocupado:", espacioOcupado)
@@ -789,7 +793,9 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) string {
 		fmt.Println("Queda Espacio libre:", espacioLibre)
 		//espacioLibre = espacioTotalDisco - espacioOcupado
 		porcentajeLibre = int32((100 * espacioLibre) / espacioTotalDisco)
+		fmt.Printf("Porcentaje Libre: %d\n", porcentajeLibre)
 		dot.WriteString(fmt.Sprintf("<td rowspan=\"2\">%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", "Libre", porcentajeLibre))
+		fmt.Println("dot.WriteString")
 	}
 
 	if dotLogicalPartitions.String() != "" {
@@ -803,8 +809,9 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) string {
 	dot.WriteString("</table>\n")
 	dot.WriteString(">];\n")
 	dot.WriteString("}\n")
+	//fmt.Printf("dot.String(): %s\n", dot.String())
 
-	return dot.String()
+	return dot.String(), nil
 }
 
 func ValidatePartitionName(mbr *Types.MBR, name string, delete string, addValue int64) error {
@@ -1157,6 +1164,32 @@ func GetPartitionId(mbr *Types.MBR, name string) (string, error) {
 
 	if !partitionExists {
 		return "", fmt.Errorf("la partición %s no existe", name)
+	}
+
+	return partitionId, nil
+}
+
+func ValidatePartitionId(mbr *Types.MBR, id string) (string, error) {
+	//partitionId := ""
+	partitionExists := false
+
+	var partitionId string = ""
+	for _, partition := range mbr.Partitions {
+		fmt.Printf("Fdisk Particion: %+v\n", partition)
+		fmt.Printf("Fdisk Particion Id: %s\n", string(partition.Id[:]))
+		partitionId = Utils.CleanPartitionName(partition.Id[:])
+		fmt.Printf("Fdisk Clean Particion Id: %s\n", partitionId)
+		//fmt.Println("Particion:", string(partition.Name[:]))
+		if strings.TrimSpace(partitionId) == strings.TrimSpace(id) {
+			//fmt.Println("Particion encontrada:", string(partition.Name[:]))
+			partitionExists = true
+			//partitionId = string(partition.Id[:])
+			break
+		}
+	}
+
+	if !partitionExists {
+		return "", fmt.Errorf("desde fdisk, la partición %s no existe", id)
 	}
 
 	return partitionId, nil
