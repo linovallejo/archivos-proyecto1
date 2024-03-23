@@ -548,7 +548,7 @@ func rep(params []string) {
 
 	driveletter := string(id[0])
 	filename := driveletter + ".dsk"
-	fmt.Println("filename in rep:", filename)
+	//fmt.Println("filename in rep:", filename)
 
 	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
 	if err != nil {
@@ -556,7 +556,7 @@ func rep(params []string) {
 		return
 	}
 
-	fmt.Println("archivoBinarioDisco:", archivoBinarioDisco)
+	//fmt.Println("archivoBinarioDisco:", archivoBinarioDisco)
 
 	// Leer el MBR existente
 	mbr, err := Fdisk.ReadMBR(archivoBinarioDisco)
@@ -568,7 +568,7 @@ func rep(params []string) {
 	var dotCode string
 	switch reportName {
 	case "mbr":
-		fmt.Printf("Identificador: [%s]\n", id)
+		//fmt.Printf("Identificador: [%s]\n", id)
 		_, err = Fdisk.ValidatePartitionId(mbr, id)
 		if err != nil {
 			fmt.Println(err)
@@ -580,13 +580,13 @@ func rep(params []string) {
 		}
 
 	case "disk":
-		fmt.Printf("Identificador: [%s]\n", id)
+		//fmt.Printf("Identificador: [%s]\n", id)
 		_, err = Fdisk.ValidatePartitionId(mbr, id)
 		if err != nil {
 			fmt.Println(err)
 			return
 		} else {
-			fmt.Println("Generard Disk report")
+			//fmt.Println("Generated Disk report")
 			dotCode, err = Fdisk.GenerateDotCodeDisk(mbr, archivoBinarioDisco)
 			if err != nil {
 				fmt.Println("Error generating disk report:", err)
@@ -651,10 +651,9 @@ func rep(params []string) {
 
 		dotCode = Mkfs.GenerateDotCodeTree(inodes, directoryBlocks)
 
-		//fmt.Println("Dot Code:", dotCode)
 	}
 
-	//fmt.Printf("dotCode: %s\n", dotCode)
+	//fmt.Println("Dot Code:", dotCode)
 
 	fmt.Printf("reportPathAndFileName: %s\n", reportPathAndFileName)
 
