@@ -1056,7 +1056,7 @@ func AdjustPartitionSize(mbr *Types.MBR, partitionName string, addValue int64, u
 	// Conversión del valor add según la unidad
 	var sizeInBytes int64 = convertUnitToAddValue(addValue, unit)
 
-	// fmt.Println("Espacio a ajustar:", sizeInBytes)
+	fmt.Println("Espacio a ajustar:", sizeInBytes)
 	// fmt.Println("Partición:", partitionName)
 
 	// partitionIndex, _ := findPartitionByName(mbr, partitionName)
@@ -1064,13 +1064,22 @@ func AdjustPartitionSize(mbr *Types.MBR, partitionName string, addValue int64, u
 	// 	return fmt.Errorf("la partición '%s' no se encontró", partitionName)
 	// }
 
-	var partitionIndex int64 = 0
+	var partitionIndex int64 = -1
 
+	fmt.Printf("PartitionName parameter: %s\n", partitionName)
 	for i, partition := range mbr.Partitions {
 		// Asume que el nombre de la partición se almacena en un array de bytes y necesita ser convertido a string
-		if string(partition.Name[:]) == partitionName {
+		fmt.Printf("Partition: %+v\n", partition)
+		fmt.Printf("PartitionName: %s\n", string(partition.Name[:]))
+		if Utils.CleanPartitionName(partition.Name[:]) == strings.TrimSpace(partitionName) {
 			partitionIndex = int64(i)
+			fmt.Printf("PartitionIndex: %d\n", partitionIndex)
+			break
 		}
+	}
+
+	if partitionIndex == -1 {
+		return fmt.Errorf("la partición '%s' no se encontró", partitionName)
 	}
 
 	//fmt.Println("Partición encontrada:", partitionIndex)
@@ -1084,10 +1093,16 @@ func AdjustPartitionSize(mbr *Types.MBR, partitionName string, addValue int64, u
 		return fmt.Errorf(err.Error())
 	}
 
-	//fmt.Println("Ajustando el tamaño de la partición...")
-
 	// Ajusta el tamaño de la partición
-	mbr.Partitions[partitionIndex].Size += int32(sizeInBytes)
+	var partitionSize int32 = int32(mbr.Partitions[partitionIndex].Size)
+	fmt.Println("size before adjustment:", partitionSize)
+	if sizeInBytes < 0 {
+		partitionSize = partitionSize - int32(math.Abs(float64(sizeInBytes)))
+	} else {
+		partitionSize = partitionSize + int32(sizeInBytes)
+	}
+	fmt.Println("size after adjustment:", partitionSize)
+	mbr.Partitions[partitionIndex].Size = partitionSize
 
 	WriteMBR(diskFileName, *mbr)
 

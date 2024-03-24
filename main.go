@@ -324,6 +324,16 @@ func fdisk(params []string) {
 		} else {
 			fmt.Println("Tamaño de la partición ajustado exitosamente.")
 		}
+		// fmt.Println("despues del addValue negativo")
+		// var TempMBR2 *Types.MBR
+		// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDisco)
+		// if err != nil {
+		// 	fmt.Println("Error leyendo el MBR:", err)
+		// 	return
+		// }
+
+		// Utils.PrintMBRv3(TempMBR2)
+
 		return
 	}
 
@@ -581,6 +591,17 @@ func rep(params []string) {
 
 	case "disk":
 		//fmt.Printf("Identificador: [%s]\n", id)
+
+		// fmt.Println("mbr in rep antes de generar el reporte disk:", mbr)
+		// var TempMBR2 *Types.MBR
+		// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDisco)
+		// if err != nil {
+		// 	fmt.Println("Error leyendo el MBR:", err)
+		// 	return
+		// }
+
+		// Utils.PrintMBRv3(TempMBR2)
+
 		_, err = Fdisk.ValidatePartitionId(mbr, id)
 		if err != nil {
 			fmt.Println(err)
