@@ -404,6 +404,7 @@ func GenerateDotCodeTree(inodes []Types.Inode, blocks []Types.DirectoryBlock) st
 		}
 
 		if hasValidBlock { // Only output inodes with valid blocks
+			fmt.Printf("Inode with valid block %d: %+v\n", i, inode)
 			builder.WriteString(fmt.Sprintf("\tInodo%d [label=\"{Inodo %d", i, i))
 			for b, blockNum := range inode.I_block {
 				if blockNum != -1 {
@@ -416,6 +417,7 @@ func GenerateDotCodeTree(inodes []Types.Inode, blocks []Types.DirectoryBlock) st
 
 	// Iterate over blocks
 	for i, block := range blocks {
+		fmt.Printf("Block %d: %+v\n", i, block)
 		builder.WriteString(fmt.Sprintf("\tBloque%d [label=\"", i))
 		for j, entry := range block.B_content {
 			entryName := strings.Trim(string(entry.B_name[:]), "\x00")
@@ -437,6 +439,7 @@ func GenerateDotCodeTree(inodes []Types.Inode, blocks []Types.DirectoryBlock) st
 			}
 		}
 	}
+	fmt.Println("======End DOT code======")
 
 	// Close the DOT graph
 	builder.WriteString("}\n")

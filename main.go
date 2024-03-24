@@ -560,6 +560,7 @@ func mkfs(params []string) {
 
 func rep(params []string) {
 	id, reportName, reportPathAndFileName, err := Rep.ExtractRepParams(params)
+	reportPathAndFileName = strings.ReplaceAll(reportPathAndFileName, "\"", "")
 	fmt.Printf("id: %s, reportName: %s, reportPathAndFileName: %s\n", id, reportName, reportPathAndFileName)
 
 	if err != nil {
@@ -641,10 +642,9 @@ func rep(params []string) {
 		if err != nil {
 			fmt.Println(err)
 			return
+		} else {
+			fmt.Println("Partición encontrada.")
 		}
-		///else {
-		///	fmt.Println("Partición encontrada.")
-		///}
 
 		var partitionStart int32 = 0
 		partitionStart, err = Mount.GetPartitionStart(mbr, id)
@@ -652,10 +652,9 @@ func rep(params []string) {
 		if err != nil {
 			fmt.Println(err)
 			return
+		} else {
+			fmt.Println("Start:", partitionStart)
 		}
-		/// else {
-		/// 	fmt.Println("Start:", partitionStart)
-		/// }
 
 		superblock, err := Mkfs.ReadSuperBlock(archivoBinarioDisco, partitionStart)
 		if err != nil {
@@ -663,7 +662,7 @@ func rep(params []string) {
 			return
 		}
 
-		/// fmt.Println("Superblock in rep:", superblock)
+		fmt.Println("Superblock in rep:", superblock)
 
 		inodes, err := Mkfs.ReadInodesFromFile(archivoBinarioDisco, superblock)
 		if err != nil {
@@ -677,9 +676,10 @@ func rep(params []string) {
 			return
 		}
 
-		/// fmt.Println("Inodes[0] in rep:", inodes[0])
+		fmt.Println("Inodes[0] in rep:", inodes[0])
 
-		/// fmt.Println("Directory Blocks in rep:", directoryBlocks)
+		fmt.Println("Directory Blocks in rep:", directoryBlocks)
+		Utils.LineaDoble(60)
 
 		dotCode = Mkfs.GenerateDotCodeTree(inodes, directoryBlocks)
 
