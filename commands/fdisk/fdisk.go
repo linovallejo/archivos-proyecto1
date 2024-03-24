@@ -806,7 +806,7 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) (string, error) {
 		fmt.Println("Particiones libres:", particionesLibres)
 		fmt.Println("Queda Espacio libre:", espacioLibreFinal)
 		//espacioLibre = espacioTotalDisco - espacioOcupado
-		porcentajeLibreFinal = int32((100 * espacioLibreFinal) / espacioTotalDisco)
+		porcentajeLibreFinal = int32(100.0 * float64(espacioLibreFinal) / float64(espacioTotalDisco))
 		fmt.Printf("Porcentaje Libre: %d\n", porcentajeLibreFinal)
 		dot.WriteString(fmt.Sprintf("<td rowspan=\"2\">%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", "Libre2", porcentajeLibreFinal))
 		fmt.Println("dot.WriteString")
