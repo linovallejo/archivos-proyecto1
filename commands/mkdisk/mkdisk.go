@@ -47,6 +47,7 @@ func ExtractMkdiskParams(params []string) (int64, string, string, error) {
 			}
 		} else if strings.HasPrefix(param, "-unit=") {
 			unit = strings.TrimPrefix(param, "-unit=")
+			unit = strings.ToUpper(unit)
 			if unit != "K" && unit != "M" {
 				return 0, "", "", fmt.Errorf("Parametro unidad invalido")
 			}

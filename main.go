@@ -584,7 +584,7 @@ func rep(params []string) {
 			fmt.Println(err)
 			return
 		} else {
-			fmt.Println("Generard Mbr report")
+			//fmt.Println("Generated Mbr report")
 
 			dotCode = Fdisk.GenerateDotCodeMbr(mbr, archivoBinarioDisco)
 		}
@@ -611,9 +611,10 @@ func rep(params []string) {
 			dotCode, err = Fdisk.GenerateDotCodeDisk(mbr, archivoBinarioDisco)
 			if err != nil {
 				fmt.Println("Error generating disk report:", err)
-			} else {
-				fmt.Println(dotCode)
 			}
+			// else {
+			// 	fmt.Println(dotCode)
+			// }
 		}
 	case "tree":
 		// Leer el MBR existente
@@ -676,16 +677,16 @@ func rep(params []string) {
 
 	//fmt.Println("Dot Code:", dotCode)
 
-	fmt.Printf("reportPathAndFileName: %s\n", reportPathAndFileName)
+	//fmt.Printf("reportPathAndFileName: %s\n", reportPathAndFileName)
 
 	extension := filepath.Ext(reportPathAndFileName)
-	fmt.Printf("extension: %s\n", extension)
+	//fmt.Printf("extension: %s\n", extension)
 	pathWithoutExt := reportPathAndFileName[:len(reportPathAndFileName)-len(extension)]
-	fmt.Printf("pathWithoutExt: %s\n", pathWithoutExt)
+	//fmt.Printf("pathWithoutExt: %s\n", pathWithoutExt)
 
 	nombreArchivoDot := pathWithoutExt + ".dot"
 	nombreArchivoReporte := reportPathAndFileName
-	fmt.Printf("nombreArchivoReporte: %s\n", nombreArchivoReporte)
+	//fmt.Printf("nombreArchivoReporte: %s\n", nombreArchivoReporte)
 	switch extension {
 	case ".pdf":
 		nombreArchivoReporte = pathWithoutExt + ".pdf"
@@ -701,7 +702,7 @@ func rep(params []string) {
 
 	Reportes.CrearArchivo(nombreArchivoDot)
 	Reportes.EscribirArchivo(dotCode, nombreArchivoDot)
-	fmt.Printf("extension: %s\n", extension)
+	//fmt.Printf("extension: %s\n", extension)
 	Reportes.Ejecutar(nombreArchivoReporte, nombreArchivoDot, extension)
 	// Reportes.VerReporte(nombreArchivoPng)
 }

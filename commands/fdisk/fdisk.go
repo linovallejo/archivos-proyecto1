@@ -715,19 +715,19 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) (string, error) {
 	var espacioOcupadoExtendida int32 = 0
 	var dotLogicalPartitions bytes.Buffer
 
-	fmt.Println("Espacio total:", espacioTotalDisco)
-	fmt.Println("Espacio libre antes del loop:", espacioLibre)
+	// fmt.Println("Espacio total:", espacioTotalDisco)
+	// fmt.Println("Espacio libre antes del loop:", espacioLibre)
 	for _, partition := range mbr.Partitions {
 		partitionName := Utils.CleanPartitionName(partition.Name[:])
 		partitionStatus := partition.Status[0]
-		fmt.Println("Particion:", partitionName, "Status:", partitionStatus, "Size:", partition.Size, "Espacio libre:", espacioLibre)
+		//fmt.Println("Particion:", partitionName, "Status:", partitionStatus, "Size:", partition.Size, "Espacio libre:", espacioLibre)
 
 		if partitionStatus != 1 && partition.Type[0] == 'P' {
 			if partition.Size > 0 {
 				//espacioLibre += espacioLibre + partition.Size
-				fmt.Println("Espacio libre antes de sumar:", espacioLibre)
+				//fmt.Println("Espacio libre antes de sumar:", espacioLibre)
 				espacioLibre += partition.Size
-				fmt.Println("Espacio libre despues de sumar:", espacioLibre)
+				//fmt.Println("Espacio libre despues de sumar:", espacioLibre)
 			} else {
 				particionesLibres++
 			}
@@ -787,25 +787,24 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) (string, error) {
 		}
 	}
 
-	fmt.Println("Espacio total disco:", espacioTotalDisco)
-	fmt.Println("Espacio ocupado primarias:", espacioOcupado)
-	fmt.Println("Espacio ocupado extendida:", espacioOcupadoExtendida)
-	fmt.Println("Espacio libre:", espacioLibre)
-	Utils.LineaDoble(60)
+	// fmt.Println("Espacio total disco:", espacioTotalDisco)
+	// fmt.Println("Espacio ocupado primarias:", espacioOcupado)
+	// fmt.Println("Espacio ocupado extendida:", espacioOcupadoExtendida)
+	// fmt.Println("Espacio libre:", espacioLibre)
+	// Utils.LineaDoble(60)
 
 	espacioLibreFinal = espacioTotalDisco - espacioOcupado - espacioLibreTemporal
-	fmt.Printf("Espacio libre final: %d\n", espacioLibreFinal)
+	//fmt.Printf("Espacio libre final: %d\n", espacioLibreFinal)
 	if particionesLibres > 0 || espacioLibreFinal > 0 {
 		//espacioLibreFinal = espacioLibreFinal + espacioLibre
 		//fmt.Println("Espacio libre:", espacioLibreFinal)
 
-		fmt.Println("Particiones libres:", particionesLibres)
-		fmt.Println("Queda Espacio libre:", espacioLibreFinal)
+		// fmt.Println("Particiones libres:", particionesLibres)
+		// fmt.Println("Queda Espacio libre:", espacioLibreFinal)
 		//espacioLibre = espacioTotalDisco - espacioOcupado
 		porcentajeLibreFinal = int32(100.0 * float64(espacioLibreFinal) / float64(espacioTotalDisco))
-		fmt.Printf("Porcentaje Libre: %d\n", porcentajeLibreFinal)
+		// fmt.Printf("Porcentaje Libre: %d\n", porcentajeLibreFinal)
 		dot.WriteString(fmt.Sprintf("<td rowspan=\"2\">%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", "Libre2", porcentajeLibreFinal))
-		fmt.Println("dot.WriteString")
 	}
 
 	if dotLogicalPartitions.String() != "" {
