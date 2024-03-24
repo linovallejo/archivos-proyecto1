@@ -356,7 +356,11 @@ func AdjustAndCreatePartition(mbr *Types.MBR, size int32, unit, typePart, fit, n
 	spaces := calculateAvailableSpaces(mbr)
 	var selectedSpace *Space
 
+	if strings.TrimSpace(fit) == "" {
+		fit = "WF"
+	}
 	fit = strings.ToLower(fit)
+
 	switch fit {
 	case "ff":
 		selectedSpace = findFirstFit(spaces, size)
