@@ -739,7 +739,7 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) (string, error) {
 			if espacioLibre > 0 {
 				porcentajeLibre = int32((100 * espacioLibre) / espacioTotalDisco)
 				if porcentajeLibre > 0 {
-					dot.WriteString(fmt.Sprintf("<td rowspan=\"2\">%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", "Libre1", porcentajeLibre))
+					dot.WriteString(fmt.Sprintf("<td rowspan=\"2\">%s<br/><FONT POINT-SIZE='6'>%d %% del disco</FONT></td>\n", "Libre", porcentajeLibre))
 					espacioLibreTemporal += espacioLibre
 					espacioLibre = 0
 				}
