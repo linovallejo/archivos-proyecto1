@@ -121,10 +121,10 @@ rep -id=B123 -Path=.\reportes\reporte6.jpg -name=mbr #-> id3
 #DISCO 3
 rep -id=CDx -Path=.\reportes\reporte7.jpg -name=mbr #ERR ID NO ENCONTRADO
 rep -id=C123 -Path=.\reportes\reporte8.jpg -name=disk #-> id5
-#rep -id=C123 -Path=.\reportes\reporte9.jpg -name=mbr #-> id5
+rep -id=C123 -Path=.\reportes\reporte9.jpg -name=mbr #-> id5
 
 #DISCO 5
 rep -id=EDx -Path=.\reportes\reporte10.jpg -name=mbr #ERR ID NO ENCONTRADO
 rep -id=E223 -Path=.\reportes\reporte11.jpg -name=disk #-> id6
-#rep -id=E223 -Path=.\reportes\reporte12.jpg -name=mbr #-> id6
+rep -id=E223 -Path=.\reportes\reporte12.jpg -name=mbr #-> id6
 
