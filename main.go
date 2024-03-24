@@ -167,7 +167,7 @@ func main() {
 					// }
 					// Utils.PrintMBRv3(TempMBR2)
 
-					mkfs(params[1:], archivoBinarioDiscoActual)
+					mkfs(params[1:])
 
 					// fmt.Println("despues del mkfs")
 					// var TempMBR3 *Types.MBR
@@ -480,10 +480,20 @@ func unmount(params []string) {
 	// }
 }
 
-func mkfs(params []string, archivoBinarioDisco string) {
+func mkfs(params []string) {
 	id, type_, fs, err := Mkfs.ExtractMkfsParams(params)
 	if err != nil {
 		fmt.Println("Error al procesar los parámetros MKFS:", err)
+	}
+
+	driveletter := string(id[0])
+	filename := driveletter + ".dsk"
+	//fmt.Println("filename in rep:", filename)
+
+	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
 
 	// Leer el MBR existente
@@ -496,7 +506,7 @@ func mkfs(params []string, archivoBinarioDisco string) {
 	/// fmt.Println("mbr in mkfs:", mbr)
 	/// fmt.Println("id:", id)
 
-	_, err = Mount.ValidatePartitionId(mbr, id)
+	_, err = Fdisk.ValidatePartitionId(mbr, id)
 	if err != nil {
 		fmt.Println(err)
 		return
