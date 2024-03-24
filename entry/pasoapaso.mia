@@ -128,3 +128,4 @@ rep -id=EDx -Path=.\reportes\reporte10.jpg -name=mbr #ERR ID NO ENCONTRADO
 rep -id=E223 -Path=.\reportes\reporte11.jpg -name=disk #-> id6
 rep -id=E223 -Path=.\reportes\reporte12.jpg -name=mbr #-> id6
 
+#BASICO.MIA PASSED
