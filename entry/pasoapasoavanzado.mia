@@ -31,3 +31,8 @@ mkfs -type=full -id=A123 -fs=2fs
 #------------------------REPORTES 1----------------
 #rep -id=A123 -path=".\reportes\reporte1_sb.jpg" -name=sb
 rep -id=A123 -path=".\reportes\reporte1_tree.jpg" -name=tree
+
+pause
+mkdisk -param=x #ERR
+
+login -user=root -pass=999 -id=A123

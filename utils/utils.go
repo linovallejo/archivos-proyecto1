@@ -165,3 +165,12 @@ func PrintMounted(mbr *Types.MBR) {
 	}
 	LineaDoble(80)
 }
+
+func OpenFile(name string) (*os.File, error) {
+	file, err := os.OpenFile(name, os.O_RDWR, 0644)
+	if err != nil {
+		fmt.Println("Err OpenFile==", err)
+		return nil, err
+	}
+	return file, nil
+}

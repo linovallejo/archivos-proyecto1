@@ -1,4 +1,4 @@
-#mkdisk -size=25 -unit=M -fit=BF
+mkdisk -size=25 -unit=M -fit=BF
 #fdisk -size=15 -unit=M  -driveletter=A -name=Primaria1 -type=P -fit=BF
 #El rep aun no funciona
 #rep -name=disk -path=.\reportes\disk.pdf
@@ -189,6 +189,6 @@
 #rmdisk -driveletter=A
 
 #comandos no implementados
-mkdisk -size=25 -unit=M -fit=BF
-login root
-mkgrp -name=grupo1
+#mkdisk -size=25 -unit=M -fit=BF
+#login root
+#mkgrp -name=grupo1

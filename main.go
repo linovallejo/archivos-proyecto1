@@ -13,6 +13,7 @@ import (
 	Rmdisk "proyecto1/commands/rmdisk"
 	Command "proyecto1/commands/validations"
 	Reportes "proyecto1/reportes"
+	UserWorkspace "proyecto1/userworkspace"
 	Utils "proyecto1/utils"
 	"strings"
 )
@@ -155,6 +156,11 @@ func main() {
 				case strings.HasPrefix(commandLower, "pause"):
 					fmt.Println("Presione cualquier tecla para continuar...")
 					fmt.Scanln()
+				case strings.HasPrefix(commandLower, "login"):
+					params := strings.Fields(command)
+					login(params[1:])
+				// case strings.HasPrefix(commandLower, "logout"):
+				// 	logout()
 				case strings.HasPrefix(commandLower, "mkfs"):
 					params := strings.Fields(command)
 
@@ -715,4 +721,30 @@ func rep(params []string) {
 	//fmt.Printf("extension: %s\n", extension)
 	Reportes.Ejecutar(nombreArchivoReporte, nombreArchivoDot, extension)
 	// Reportes.VerReporte(nombreArchivoPng)
+}
+
+func login(params []string) {
+	user, pass, id, err := UserWorkspace.ExtractLoginParams(params)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	driveletter := string(id[0])
+	filename := driveletter + ".dsk"
+	//fmt.Println("filename in rep:", filename)
+
+	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	err = UserWorkspace.Login(user, pass, id, archivoBinarioDisco)
+	if err != nil {
+		fmt.Println(err)
+		return
+	} else {
+		fmt.Println("Login exitoso")
+	}
 }
