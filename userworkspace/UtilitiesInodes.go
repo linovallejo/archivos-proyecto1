@@ -64,7 +64,10 @@ func SarchInodeByPath(StepsPath []string, Inode Types.Inode, file *os.File, temp
 
 				for _, folder := range crrFolderBlock.B_content {
 					// fmt.Println("Folder found======")
-					fmt.Println("Folder === Name:", string(folder.B_name[:]), "B_inodo", folder.B_inodo)
+					//fmt.Println("Folder | Name:", string(folder.B_name[:]), "B_inodo", folder.B_inodo)
+
+					fmt.Println("SearchedName:", SearchedName)
+					fmt.Println("folder.B_name:", string(folder.B_name[:]))
 
 					if strings.Contains(string(folder.B_name[:]), SearchedName) {
 
@@ -92,7 +95,7 @@ func SarchInodeByPath(StepsPath []string, Inode Types.Inode, file *os.File, temp
 	}
 
 	fmt.Println("======End SARCHINODEBYPATH======")
-	return 0
+	return 999
 }
 
 func GetInodeFileDataOriginal(Inode Types.Inode, file *os.File, tempSuperblock Types.SuperBlock) string {

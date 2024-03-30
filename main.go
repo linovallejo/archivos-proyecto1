@@ -670,24 +670,40 @@ func rep(params []string) {
 
 		fmt.Println("Superblock in rep:", superblock)
 
-		inodes, err := Mkfs.ReadInodesFromFile(archivoBinarioDisco, superblock)
+		inodes, err := Mkfs.ReadAllUsedInodesFromFile(archivoBinarioDisco, superblock)
 		if err != nil {
 			fmt.Println("Error reading inodes:", err)
 			return
 		}
 
-		directoryBlocks, err := Mkfs.ReadDirectoryBlocksFromFile(archivoBinarioDisco, superblock)
+		fmt.Println("Inodes len in rep:", len(inodes))
+
+		// for i, inode := range inodes {
+		// 	fmt.Println("Inode:", i, "Inode:", inode)
+		// 	if i > 10 {
+		// 		break
+		// 	}
+		// }
+
+		//fmt.Println("Inodes in rep:", inodes[0])
+
+		directoryBlocks, err := Mkfs.ReadAllUsedBlocksFromFile(archivoBinarioDisco, superblock)
 		if err != nil {
 			fmt.Println("Error reading directory blocks:", err)
 			return
 		}
 
-		fmt.Println("Inodes[0] in rep:", inodes[0])
-
 		fmt.Println("Directory Blocks in rep:", directoryBlocks)
 		Utils.LineaDoble(60)
 
-		dotCode = Mkfs.GenerateDotCodeTree(inodes, directoryBlocks)
+		dotCode, err = Mkfs.GraficarArbol(archivoBinarioDisco, int(partitionStart), inodes, directoryBlocks)
+		//dotCode = Mkfs.GenerateDotCodeTree(inodes, directoryBlocks)
+
+		//dotCode, err = Mkfs.GraficarTREE(archivoBinarioDisco, int(partitionStart))
+		if err != nil {
+			fmt.Println("Error generating tree report:", err)
+			return
+		}
 
 	}
 

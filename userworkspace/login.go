@@ -123,6 +123,8 @@ func Login(user string, pass string, id string, diskFileName string) error {
 	}
 
 	indexInode := InitSearch("/users.txt", file, tempSuperblock)
+	Utils.LineaDoble(80)
+	fmt.Println("Index Inode:", indexInode)
 	if indexInode == -1 {
 		fmt.Println("User not found")
 		return fmt.Errorf("User not found")
@@ -142,6 +144,7 @@ func Login(user string, pass string, id string, diskFileName string) error {
 	}
 
 	data := GetInodeFileDataOriginal(tempInode, file, tempSuperblock)
+	fmt.Println("Data:", data)
 
 	fmt.Println("Fileblock------------")
 	// Dividir la cadena en líneas
@@ -153,8 +156,9 @@ func Login(user string, pass string, id string, diskFileName string) error {
 	// Iterar a través de las líneas
 	for _, line := range lines {
 		// Imprimir cada línea
-		fmt.Println(line)
+		fmt.Println("Line:", line)
 		words := strings.Split(line, ",")
+		fmt.Println("Words:", words)
 
 		if len(words) == 5 {
 			if (strings.Contains(words[3], user)) && (strings.Contains(words[4], pass)) {
