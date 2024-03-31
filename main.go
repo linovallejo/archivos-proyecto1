@@ -687,6 +687,17 @@ func rep(params []string) {
 
 		//fmt.Println("Inodes in rep:", inodes[0])
 
+		entries, err := Mkfs.ReadBlock0AndTraverseContents(archivoBinarioDisco, superblock)
+		if err != nil {
+			fmt.Println("Error traversing Block 0:", err)
+			return
+		}
+
+		// Example: Print the names of the entries in Block 0
+		for _, entry := range entries {
+			fmt.Printf("Entry Name: %s, Inode: %d\n", string(entry.B_name[:]), entry.B_inodo)
+		}
+
 		directoryBlocks, err := Mkfs.ReadAllUsedBlocksFromFile(archivoBinarioDisco, superblock)
 		if err != nil {
 			fmt.Println("Error reading directory blocks:", err)
@@ -764,3 +775,46 @@ func login(params []string) {
 		fmt.Println("Login exitoso")
 	}
 }
+
+func byteToString(data []byte) string {
+	return string(data[:clen(data)])
+}
+
+// Find C-style string length (null-terminated)
+func clen(n []byte) int {
+	for i := 0; i < len(n); i++ {
+		if n[i] == 0 {
+			return i
+		}
+	}
+	return len(n)
+}
+
+// PrintInodesAndBlocks prints details of inodes and blocks in a human-readable format
+// func PrintInodesAndBlocks(inodes []Types.Inode, directoryBlocks []Types.DirectoryBlock, fileBlocks []Types.FileBlock) {
+// 	for _, inode := range inodes {
+// 		fmt.Printf("Inode - UID: %d, GID: %d, Size: %d, Type: %s\n", inode.I_uid, inode.I_gid, inode.I_size, byteToString(inode.I_type[:]))
+// 		fmt.Printf("Access Time: %s, Creation Time: %s, Modification Time: %s\n", byteToString(inode.I_atime[:]), byteToString(inode.I_ctime[:]), byteToString(inode.I_mtime[:]))
+// 		fmt.Printf("Permissions: %s\n", byteToString(inode.I_perm[:]))
+
+// 		for _, blockIndex := range inode.I_block {
+// 			if blockIndex == -1 {
+// 				continue // Skip if block index is invalid
+// 			}
+
+// 			// Depending on the inode type, print the appropriate block content
+// 			if inode.I_type[0] == '0' { // Directory
+// 				block := directoryBlocks[blockIndex]
+// 				fmt.Println("Directory Block:")
+// 				for _, content := range block.B_content {
+// 					fmt.Printf("Name: %s, Inode: %d\n", byteToString(content.B_name[:]), content.B_inodo)
+// 				}
+// 			} else if inode.I_type[0] == '1' { // File
+// 				block := fileBlocks[blockIndex]
+// 				fmt.Println("File Block Content:")
+// 				fmt.Println(byteToString(block.B_content[:]))
+// 			}
+// 		}
+// 		fmt.Println("--------------------------------")
+// 	}
+// }

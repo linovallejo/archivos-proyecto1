@@ -42,6 +42,21 @@ func ReadObject(file *os.File, data interface{}, position int64) error {
 	return nil
 }
 
+func ReadObject2(file *os.File, data interface{}, position int64) error {
+	file.Seek(position, 0)
+
+	switch v := data.(type) {
+	case *Types.FileBlock:
+		err := binary.Read(file, binary.LittleEndian, v)
+		return err
+	case *Types.DirectoryBlock:
+		err := binary.Read(file, binary.LittleEndian, v)
+		return err
+	default:
+		return fmt.Errorf("unsupported type: %T", data)
+	}
+}
+
 func LimpiarConsola() {
 	fmt.Print("\033[H\033[2J")
 }
