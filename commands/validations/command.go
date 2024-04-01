@@ -61,37 +61,39 @@ func ValidarParametros(commandLine string) error {
 		commandLine = commandLine[:hashIndex]
 	}
 	parts := strings.Fields(commandLine)
-	if len(parts) < 2 {
-		return errors.New("formato de comando invalido")
-	}
-	cmd := parts[0]
-	allowedParams, ok := commandParams[cmd]
-	if !ok {
-		return errors.New("comando no especificado: " + cmd)
-	}
-
-	// Track provided parameters to check mandatory ones at the end
-	providedParams := make(map[string]bool)
-
-	for _, part := range parts[1:] {
-		p := strings.Split(part, "=")
-		if len(p) != 2 {
-			return errors.New("formato de parametro invalido: " + part)
+	if strings.ToLower(parts[0]) != "pause" {
+		if len(parts) < 2 {
+			return errors.New("formato de comando invalido")
 		}
-		paramName := p[0][1:] // Remove "-" from param name
-
-		// Check if the parameter is allowed for this command
-		if _, ok := allowedParams[paramName]; !ok {
-			return errors.New("parametro no especificado para " + cmd + ": " + paramName)
+		cmd := parts[0]
+		allowedParams, ok := commandParams[cmd]
+		if !ok {
+			return errors.New("comando no especificado: " + cmd)
 		}
 
-		providedParams[paramName] = true
-	}
+		// Track provided parameters to check mandatory ones at the end
+		providedParams := make(map[string]bool)
 
-	// Check for missing mandatory parameters
-	for paramName, details := range allowedParams {
-		if details.IsMandatory && !providedParams[paramName] {
-			return errors.New("parametro obligatorio faltante para " + cmd + ": " + paramName)
+		for _, part := range parts[1:] {
+			p := strings.Split(part, "=")
+			if len(p) != 2 {
+				return errors.New("formato de parametro invalido: " + part)
+			}
+			paramName := p[0][1:] // Remove "-" from param name
+
+			// Check if the parameter is allowed for this command
+			if _, ok := allowedParams[paramName]; !ok {
+				return errors.New("parametro no especificado para " + cmd + ": " + paramName)
+			}
+
+			providedParams[paramName] = true
+		}
+
+		// Check for missing mandatory parameters
+		for paramName, details := range allowedParams {
+			if details.IsMandatory && !providedParams[paramName] {
+				return errors.New("parametro obligatorio faltante para " + cmd + ": " + paramName)
+			}
 		}
 	}
 

@@ -256,7 +256,7 @@ func ValidatePartitionId(mbr *Types.MBR, id string) (string, error) {
 	if partitionId == "" {
 		return "", fmt.Errorf("No se encontró la partición con el id especificado")
 	}
-	fmt.Printf("Partition Encontrada: %s\n", partitionId)
+	//fmt.Printf("Partition Encontrada: %s\n", partitionId)
 	return partitionId, nil
 }
 

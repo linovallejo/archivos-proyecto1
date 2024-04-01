@@ -2,7 +2,6 @@ package UserWorkspace
 
 import (
 	"encoding/binary"
-	"fmt"
 	"os"
 	Types "proyecto1/types"
 	Utilities "proyecto1/utils"
@@ -11,26 +10,23 @@ import (
 
 // login -user=root -pass=123 -id=A119
 func InitSearch(path string, file *os.File, tempSuperblock Types.SuperBlock) int32 {
-	fmt.Println("======Start INITSEARCH======")
-	fmt.Println("path:", path)
+	//fmt.Println("path:", path)
 	// path = "/ruta/nueva"
 
 	// split the path by /
 	TempStepsPath := strings.Split(path, "/")
 	StepsPath := TempStepsPath[1:]
 
-	fmt.Println("StepsPath:", StepsPath, "len(StepsPath):", len(StepsPath))
-	for _, step := range StepsPath {
-		fmt.Println("step:", step)
-	}
+	// fmt.Println("StepsPath:", StepsPath, "len(StepsPath):", len(StepsPath))
+	// for _, step := range StepsPath {
+	// 	fmt.Println("step:", step)
+	// }
 
 	var Inode0 Types.Inode
 	// Read object from bin file
 	if err := Utilities.ReadObject(file, &Inode0, int64(tempSuperblock.S_inode_start)); err != nil {
 		return -1
 	}
-
-	fmt.Println("======End INITSEARCH======")
 
 	return SarchInodeByPath(StepsPath, Inode0, file, tempSuperblock)
 }
@@ -44,11 +40,10 @@ func pop(s *[]string) string {
 
 // login -user=root -pass=123 -id=A119
 func SarchInodeByPath(StepsPath []string, Inode Types.Inode, file *os.File, tempSuperblock Types.SuperBlock) int32 {
-	fmt.Println("======Start SARCHINODEBYPATH======")
 	index := int32(0)
 	SearchedName := strings.Replace(pop(&StepsPath), " ", "", -1)
 
-	fmt.Println("========== SearchedName:", SearchedName)
+	//fmt.Println("========== SearchedName:", SearchedName)
 
 	// Iterate over i_blocks from Inode
 	for _, block := range Inode.I_block {
@@ -66,17 +61,17 @@ func SarchInodeByPath(StepsPath []string, Inode Types.Inode, file *os.File, temp
 					// fmt.Println("Folder found======")
 					//fmt.Println("Folder | Name:", string(folder.B_name[:]), "B_inodo", folder.B_inodo)
 
-					fmt.Println("SearchedName:", SearchedName)
-					fmt.Println("folder.B_name:", string(folder.B_name[:]))
+					// fmt.Println("SearchedName:", SearchedName)
+					// fmt.Println("folder.B_name:", string(folder.B_name[:]))
 
 					if strings.Contains(string(folder.B_name[:]), SearchedName) {
 
-						fmt.Println("len(StepsPath)", len(StepsPath), "StepsPath", StepsPath)
+						//fmt.Println("len(StepsPath)", len(StepsPath), "StepsPath", StepsPath)
 						if len(StepsPath) == 0 {
-							fmt.Println("Folder found======")
+							//fmt.Println("Folder found======")
 							return folder.B_inodo
 						} else {
-							fmt.Println("NextInode======")
+							//fmt.Println("NextInode======")
 							var NextInode Types.Inode
 							// Read object from bin file
 							if err := Utilities.ReadObject(file, &NextInode, int64(tempSuperblock.S_inode_start+folder.B_inodo*int32(binary.Size(Types.Inode{})))); err != nil {
@@ -94,12 +89,10 @@ func SarchInodeByPath(StepsPath []string, Inode Types.Inode, file *os.File, temp
 		index++
 	}
 
-	fmt.Println("======End SARCHINODEBYPATH======")
-	return 999
+	return 0
 }
 
 func GetInodeFileDataOriginal(Inode Types.Inode, file *os.File, tempSuperblock Types.SuperBlock) string {
-	fmt.Println("======Start GETINODEFILEDATA======")
 	index := int32(0)
 	// define content as a string
 	var content string
@@ -125,6 +118,5 @@ func GetInodeFileDataOriginal(Inode Types.Inode, file *os.File, tempSuperblock T
 		index++
 	}
 
-	fmt.Println("======End GETINODEFILEDATA======")
 	return content
 }

@@ -65,10 +65,9 @@ func ExtractMkfsParams(params []string) (string, string, string, error) {
 }
 
 func MakeFileSystem(diskFileName string, id string, type_ string, fs_ string) error {
-	fmt.Println("======Start MKFS======")
-	fmt.Println("Id:", id)
-	fmt.Println("Type:", type_)
-	fmt.Println("Fs:", fs_)
+	// fmt.Println("Id:", id)
+	// fmt.Println("Type:", type_)
+	// fmt.Println("Fs:", fs_)
 
 	var err error
 	var TempMBR *Types.MBR
@@ -81,23 +80,23 @@ func MakeFileSystem(diskFileName string, id string, type_ string, fs_ string) er
 
 	// Print object
 	//PrintMBR(TempMBR)
-	Utilities.PrintMBRv3(TempMBR)
+	//Utilities.PrintMBRv3(TempMBR)
 
-	fmt.Println("-------------")
+	//fmt.Println("-------------")
 
 	var index int = -1
 	// Iterate over the partitions
 	for i := 0; i < 4; i++ {
 		if TempMBR.Partitions[i].Size != 0 {
-			fmt.Println("Partition id:", string(TempMBR.Partitions[i].Id[:]))
-			fmt.Println("Partition name:", Utils.CleanPartitionName(TempMBR.Partitions[i].Name[:]))
-			fmt.Println("Partition size:", TempMBR.Partitions[i].Size)
+			// fmt.Println("Partition id:", string(TempMBR.Partitions[i].Id[:]))
+			// fmt.Println("Partition name:", Utils.CleanPartitionName(TempMBR.Partitions[i].Name[:]))
+			// fmt.Println("Partition size:", TempMBR.Partitions[i].Size)
 			//fmt.Println("Partition start:", TempMBR.Partitions[i].Start)
-			fmt.Println("Partition status:", string(TempMBR.Partitions[i].Status[:]))
+			// fmt.Println("Partition status:", string(TempMBR.Partitions[i].Status[:]))
 			if strings.Contains(string(TempMBR.Partitions[i].Id[:]), id) {
 				//fmt.Println("Partition found")
 				if TempMBR.Partitions[i].Status[0] == 1 {
-					fmt.Println("Partition is mounted")
+					//fmt.Println("Partition is mounted")
 					index = i
 				} else {
 					//fmt.Println("Partition is not mounted")
@@ -109,7 +108,7 @@ func MakeFileSystem(diskFileName string, id string, type_ string, fs_ string) er
 	}
 
 	if index != -1 {
-		PrintPartition(TempMBR.Partitions[index])
+		//PrintPartition(TempMBR.Partitions[index])
 	} else {
 		//fmt.Println("Partition not found")
 		return fmt.Errorf("partición no existe")
@@ -128,7 +127,7 @@ func MakeFileSystem(diskFileName string, id string, type_ string, fs_ string) er
 	denominador := denominador_base + temp
 	n := int32(numerador / denominador)
 
-	fmt.Println("N:", n)
+	//fmt.Println("N:", n)
 
 	// var newMRB Types.MRB
 	var newSuperblock Types.SuperBlock
@@ -169,8 +168,6 @@ func MakeFileSystem(diskFileName string, id string, type_ string, fs_ string) er
 
 	//Close bin file
 	//defer file.Close()
-
-	fmt.Println("======End MKFS======")
 
 	return nil
 }
@@ -245,10 +242,9 @@ func createRootInode(date string) (Types.Inode, error) {
 }
 
 func create_ext2(inodesCount int32, partition Types.Partition, newSuperblock Types.SuperBlock, date string, file *os.File, diskFileName string) error {
-	fmt.Println("======Start CREATE EXT2======")
-	fmt.Println("N:", inodesCount)
-	fmt.Println("Superblock:", newSuperblock)
-	fmt.Println("Date:", date)
+	// fmt.Println("N:", inodesCount)
+	// fmt.Println("Superblock:", newSuperblock)
+	// fmt.Println("Date:", date)
 
 	// err := setupSuperblock(&newSuperblock, partition, inodesCount)
 	// if err != nil {
@@ -289,8 +285,8 @@ func create_ext2(inodesCount int32, partition Types.Partition, newSuperblock Typ
 	newSuperblock.S_inodes_count = inodesCount
 	newSuperblock.S_blocks_count = 3 * inodesCount
 
-	fmt.Println("Superblock:", newSuperblock)
-	fmt.Println("inodesCount:", inodesCount)
+	// fmt.Println("Superblock:", newSuperblock)
+	// fmt.Println("inodesCount:", inodesCount)
 
 	// Inicializa bitmap de inodos
 	for i := int32(0); i < inodesCount; i++ {
@@ -465,10 +461,8 @@ func create_ext2(inodesCount int32, partition Types.Partition, newSuperblock Typ
 	// }
 	// Utils.LineaDoble(80)
 
-	fmt.Println("======End CREATE EXT2======")
-	fmt.Println("Superblock:", newSuperblock)
-	fmt.Println("inodesCount:", inodesCount)
-	fmt.Println("======End CREATE EXT2======")
+	// fmt.Println("Superblock:", newSuperblock)
+	// fmt.Println("inodesCount:", inodesCount)
 
 	return nil
 }
@@ -574,18 +568,19 @@ func ReadAllUsedInodesFromFile(filePath string, superblock Types.SuperBlock) ([]
 	}
 	defer file.Close()
 
-	fmt.Println("ReadInodesFromFile.Superblock:", superblock)
+	//fmt.Println("ReadInodesFromFile.Superblock:", superblock)
 
 	// Seek to the inode start
 	_, err = file.Seek(int64(superblock.S_inode_start), io.SeekStart)
 	if err != nil {
 		return nil, err
-	} else {
-		fmt.Println("ReadInodesFromFile.Inode start:", superblock.S_inode_start)
 	}
+	// else {
+	// 	fmt.Println("ReadInodesFromFile.Inode start:", superblock.S_inode_start)
+	// }
 
 	numInodes := superblock.S_inodes_count
-	fmt.Println("ReadInodesFromFile.numInodes:", numInodes)
+	//fmt.Println("ReadInodesFromFile.numInodes:", numInodes)
 	usedInodesIndex := 0                            // Keep track of where to insert in usedInodes
 	usedInodes := make([]Types.Inode, 0, numInodes) // Allocate initially with capacity
 
@@ -711,7 +706,7 @@ func PrintPartition(data Types.Partition) {
 	fmt.Println(fmt.Sprintf("Name: %s, type: %s, start: %d, size: %d, status: %s, id: %s", string(data.Name[:]), string(data.Type[:]), data.Start, data.Size, string(data.Status[:]), string(data.Id[:])))
 }
 
-func GraficarArbol(path string, part_start_Partition int, usedInodes []Types.Inode, usedBlocks []Types.DirectoryBlock) (string, error) {
+func GraficarArbol(path string, part_start_Partition int, usedInodes []Types.Inode) (string, error) {
 	// Se limpia el strings que almacena el codigo dot del reporte
 	var RepDot string
 	var TempBlockDot string
@@ -749,7 +744,7 @@ func GraficarArbol(path string, part_start_Partition int, usedInodes []Types.Ino
 	RepDot += "digraph G{\n\n"
 	RepDot += "    rankdir=\"LR\" \n"
 
-	start := time.Now()
+	//start := time.Now()
 
 	superB := Types.SuperBlock{}
 
@@ -866,13 +861,11 @@ func GraficarArbol(path string, part_start_Partition int, usedInodes []Types.Ino
 		}
 	}
 
-	elapsed := time.Since(start)
-	fmt.Println("myFunction() took:", elapsed)
+	//elapsed := time.Since(start)
+	//fmt.Println("myFunction() took:", elapsed)
 
 	RepDot += "\n\n}"
 	disco_actual.Close()
-
-	fmt.Println("Reporte Tree generado con exito!")
 
 	return RepDot, nil
 }

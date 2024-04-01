@@ -17,10 +17,10 @@ mount -driveletter=A -name=Part1 #191a -> id1 -> cambiar el 191a por el ID que a
 mount -driveletter=B -name=Part1 #192a -> id2 -> cambiar el 192a por el ID que a ustedes les genera
 
 #VALIDAR DISCOS Y PARTICIONES
-#rep -id=A123 -Path=.\reportes\reporteavanzado1.jpg -name=disk #-> id3
-#rep -id=A123 -Path=.\reportes\reporteavanzado2.jpg -name=mbr #-> id3
-#rep -id=B123 -Path=.\reportes\reporteavanzado3.jpg -name=disk #-> id3
-#rep -id=B123 -Path=.\reportes\reporteavanzado4.jpg -name=mbr #-> id3
+rep -id=A123 -Path=.\reportes\reporteavanzado1.jpg -name=disk #-> id3
+rep -id=A123 -Path=.\reportes\reporteavanzado2.jpg -name=mbr #-> id3
+rep -id=B123 -Path=.\reportes\reporteavanzado3.jpg -name=disk #-> id3
+rep -id=B123 -Path=.\reportes\reporteavanzado4.jpg -name=mbr #-> id3
 
 
 #CREACION DE SISTEMA DE ARCHIVOS------------------------------------------------
@@ -32,7 +32,7 @@ mkfs -type=full -id=A123 -fs=2fs
 #rep -id=A123 -path=".\reportes\reporte1_sb.jpg" -name=sb
 rep -id=A123 -path=".\reportes\reporte1_tree.jpg" -name=tree
 
-#pause
-#mkdisk -param=x #ERR
+pause
+mkdisk -param=x #ERR
 
-#login -user=root -pass=999 -id=A123
+login -user=root -pass=555 -id=A123

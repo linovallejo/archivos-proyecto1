@@ -12,6 +12,7 @@ import (
 	Rep "proyecto1/commands/rep"
 	Rmdisk "proyecto1/commands/rmdisk"
 	Command "proyecto1/commands/validations"
+	Global "proyecto1/global"
 	Reportes "proyecto1/reportes"
 	UserWorkspace "proyecto1/userworkspace"
 	Utils "proyecto1/utils"
@@ -525,7 +526,7 @@ func mkfs(params []string) {
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Printf("Sistema de archivos %s creado exitosamente.", fs)
+		fmt.Printf("Sistema de archivos %s creado exitosamente.\n", fs)
 
 		// var partitionStart int32 = 0
 		// partitionStart, err = Mount.GetPartitionStart(mbr, id)
@@ -567,7 +568,7 @@ func mkfs(params []string) {
 func rep(params []string) {
 	id, reportName, reportPathAndFileName, err := Rep.ExtractRepParams(params)
 	reportPathAndFileName = strings.ReplaceAll(reportPathAndFileName, "\"", "")
-	fmt.Printf("id: %s, reportName: %s, reportPathAndFileName: %s\n", id, reportName, reportPathAndFileName)
+	//fmt.Printf("id: %s, reportName: %s, reportPathAndFileName: %s\n", id, reportName, reportPathAndFileName)
 
 	if err != nil {
 		fmt.Println("Error al procesar los parámetros REP:", err)
@@ -648,9 +649,10 @@ func rep(params []string) {
 		if err != nil {
 			fmt.Println(err)
 			return
-		} else {
-			fmt.Println("Partición encontrada.")
 		}
+		// else {
+		// 	fmt.Println("Partición encontrada.")
+		// }
 
 		var partitionStart int32 = 0
 		partitionStart, err = Mount.GetPartitionStart(mbr, id)
@@ -658,9 +660,10 @@ func rep(params []string) {
 		if err != nil {
 			fmt.Println(err)
 			return
-		} else {
-			fmt.Println("Start:", partitionStart)
 		}
+		// else {
+		// 	fmt.Println("Start:", partitionStart)
+		// }
 
 		superblock, err := Mkfs.ReadSuperBlock(archivoBinarioDisco, partitionStart)
 		if err != nil {
@@ -668,7 +671,7 @@ func rep(params []string) {
 			return
 		}
 
-		fmt.Println("Superblock in rep:", superblock)
+		//fmt.Println("Superblock in rep:", superblock)
 
 		inodes, err := Mkfs.ReadAllUsedInodesFromFile(archivoBinarioDisco, superblock)
 		if err != nil {
@@ -676,7 +679,7 @@ func rep(params []string) {
 			return
 		}
 
-		fmt.Println("Inodes len in rep:", len(inodes))
+		//fmt.Println("Inodes len in rep:", len(inodes))
 
 		// for i, inode := range inodes {
 		// 	fmt.Println("Inode:", i, "Inode:", inode)
@@ -687,33 +690,26 @@ func rep(params []string) {
 
 		//fmt.Println("Inodes in rep:", inodes[0])
 
-		entries, err := Mkfs.ReadBlock0AndTraverseContents(archivoBinarioDisco, superblock)
-		if err != nil {
-			fmt.Println("Error traversing Block 0:", err)
-			return
-		}
+		// entries, err := Mkfs.ReadBlock0AndTraverseContents(archivoBinarioDisco, superblock)
+		// if err != nil {
+		// 	fmt.Println("Error traversing Block 0:", err)
+		// 	return
+		// }
 
-		// Example: Print the names of the entries in Block 0
-		for _, entry := range entries {
-			fmt.Printf("Entry Name: %s, Inode: %d\n", string(entry.B_name[:]), entry.B_inodo)
-		}
+		// // Example: Print the names of the entries in Block 0
+		// for _, entry := range entries {
+		// 	fmt.Printf("Entry Name: %s, Inode: %d\n", string(entry.B_name[:]), entry.B_inodo)
+		// }
 
-		directoryBlocks, err := Mkfs.ReadAllUsedBlocksFromFile(archivoBinarioDisco, superblock)
-		if err != nil {
-			fmt.Println("Error reading directory blocks:", err)
-			return
-		}
-
-		fmt.Println("Directory Blocks in rep:", directoryBlocks)
-		Utils.LineaDoble(60)
-
-		dotCode, err = Mkfs.GraficarArbol(archivoBinarioDisco, int(partitionStart), inodes, directoryBlocks)
+		dotCode, err = Mkfs.GraficarArbol(archivoBinarioDisco, int(partitionStart), inodes)
 		//dotCode = Mkfs.GenerateDotCodeTree(inodes, directoryBlocks)
 
 		//dotCode, err = Mkfs.GraficarTREE(archivoBinarioDisco, int(partitionStart))
 		if err != nil {
 			fmt.Println("Error generating tree report:", err)
 			return
+		} else {
+			fmt.Println("Reporte Tree generado con exito!")
 		}
 
 	}
@@ -772,7 +768,11 @@ func login(params []string) {
 		fmt.Println(err)
 		return
 	} else {
-		fmt.Println("Login exitoso")
+		if Global.Usuario.Status {
+			fmt.Println("Login exitoso")
+		} else {
+			fmt.Println("Login fallido")
+		}
 	}
 }
 

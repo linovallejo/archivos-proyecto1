@@ -56,14 +56,14 @@ func ExtractLoginParams(params []string) (string, string, string, error) {
 }
 
 func Login(user string, pass string, id string, diskFileName string) error {
-	fmt.Println("======Start LOGIN======")
-	fmt.Println("User:", user)
-	fmt.Println("Pass:", pass)
-	fmt.Println("Id:", id)
+	// fmt.Println("======Start LOGIN======")
+	// fmt.Println("User:", user)
+	// fmt.Println("Pass:", pass)
+	// fmt.Println("Id:", id)
 
 	if Global.Usuario.Status {
 		//fmt.Println("User already logged in")
-		return fmt.Errorf("User already logged in")
+		return fmt.Errorf("Usuario ya conectado")
 	}
 
 	var login bool = false
@@ -80,20 +80,20 @@ func Login(user string, pass string, id string, diskFileName string) error {
 	var index int = -1
 	// Iterate over the partitions
 	for i := 0; i < 4; i++ {
-		fmt.Println("Partition id:", string(TempMBR.Partitions[i].Id[:]))
-		fmt.Println("Partition name:", Utils.CleanPartitionName(TempMBR.Partitions[i].Name[:]))
+		// fmt.Println("Partition id:", string(TempMBR.Partitions[i].Id[:]))
+		// fmt.Println("Partition name:", Utils.CleanPartitionName(TempMBR.Partitions[i].Name[:]))
 		//fmt.Println("Partition size:", TempMBR.Partitions[i].Size)
 		//fmt.Println("Partition start:", TempMBR.Partitions[i].Start)
-		fmt.Println("Partition status:", string(TempMBR.Partitions[i].Status[:]))
+		// fmt.Println("Partition status:", string(TempMBR.Partitions[i].Status[:]))
 		partitionStatus := TempMBR.Partitions[i].Status[0]
 		partitionStatusStr = strconv.Itoa(int(partitionStatus))
-		fmt.Println("Partition status:", partitionStatusStr)
+		// fmt.Println("Partition status:", partitionStatusStr)
 
 		if TempMBR.Partitions[i].Size != 0 {
 			if strings.Contains(string(TempMBR.Partitions[i].Id[:]), id) {
-				fmt.Println("Partition found")
+				//fmt.Println("Partition found")
 				if strings.Contains(partitionStatusStr, "1") {
-					fmt.Println("Partition is mounted")
+					//fmt.Println("Partition is mounted")
 					index = i
 				} else {
 					//fmt.Println("Partition is not mounted")
@@ -105,7 +105,7 @@ func Login(user string, pass string, id string, diskFileName string) error {
 	}
 
 	if index != -1 {
-		fmt.Println("Partition found")
+		//fmt.Println("Partition found")
 	} else {
 		//fmt.Println("Partition not found")
 		return fmt.Errorf("Partition not found")
@@ -123,10 +123,10 @@ func Login(user string, pass string, id string, diskFileName string) error {
 	}
 
 	indexInode := InitSearch("/users.txt", file, tempSuperblock)
-	Utils.LineaDoble(80)
-	fmt.Println("Index Inode:", indexInode)
+	//Utils.LineaDoble(80)
+	//fmt.Println("Index Inode:", indexInode)
 	if indexInode == -1 {
-		fmt.Println("User not found")
+		//fmt.Println("User not found")
 		return fmt.Errorf("User not found")
 	}
 
@@ -134,31 +134,32 @@ func Login(user string, pass string, id string, diskFileName string) error {
 	if err := Utils.ReadObject(file, &tempInode, int64(tempSuperblock.S_inode_start+indexInode*int32(binary.Size(Types.Inode{})))); err != nil {
 		return fmt.Errorf("Error leyendo el inode")
 	}
-	fmt.Printf("Inode: %+v\n", tempInode)
+	//fmt.Printf("Inode: %+v\n", tempInode)
 
 	if tempInode.I_block[0] == -1 {
-		fmt.Println("User not found")
+		//fmt.Println("User not found")
 		return fmt.Errorf("User not found")
-	} else {
-		fmt.Println("User found")
 	}
+	// else {
+	// 	fmt.Println("User found")
+	// }
 
 	data := GetInodeFileDataOriginal(tempInode, file, tempSuperblock)
-	fmt.Println("Data:", data)
+	//fmt.Println("Data:", data)
 
-	fmt.Println("Fileblock------------")
+	//fmt.Println("Fileblock------------")
 	// Dividir la cadena en líneas
 	lines := strings.Split(data, "\n")
 
 	// login -user=root -pass=123 -id=A119
 
-	fmt.Println("-------------------------------------------")
+	//fmt.Println("-------------------------------------------")
 	// Iterar a través de las líneas
 	for _, line := range lines {
 		// Imprimir cada línea
-		fmt.Println("Line:", line)
+		//fmt.Println("Line:", line)
 		words := strings.Split(line, ",")
-		fmt.Println("Words:", words)
+		//fmt.Println("Words:", words)
 
 		if len(words) == 5 {
 			if (strings.Contains(words[3], user)) && (strings.Contains(words[4], pass)) {
@@ -167,21 +168,21 @@ func Login(user string, pass string, id string, diskFileName string) error {
 			}
 		}
 	}
-	fmt.Println("-------------------------------------------")
+	//fmt.Println("-------------------------------------------")
 
 	// Print object
-	fmt.Println("Inode", tempInode.I_block)
+	//fmt.Println("Inode", tempInode.I_block)
 
 	// Close bin file
 	defer file.Close()
 
 	if login {
-		fmt.Println("User logged in")
+		//fmt.Println("User logged in")
 		Global.Usuario.Id = id
 		Global.Usuario.Status = true
 	}
 
-	fmt.Println("======End LOGIN======")
+	//fmt.Println("======End LOGIN======")
 
 	// var tempDirectoryBlock Types.DirectoryBlock
 	// if err := Utils.ReadObject(file, &tempDirectoryBlock, int64(tempSuperblock.S_block_start+tempInode.I_block[0]*int32(binary.Size(Types.DirectoryBlock{})))); err != nil {
@@ -198,8 +199,6 @@ func Login(user string, pass string, id string, diskFileName string) error {
 	// 	fmt.Println("User not found")
 	// 	return
 	//}
-
-	fmt.Println("======End LOGIN======")
 
 	return nil
 
