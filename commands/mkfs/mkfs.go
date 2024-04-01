@@ -714,6 +714,7 @@ func PrintPartition(data Types.Partition) {
 func GraficarArbol(path string, part_start_Partition int, usedInodes []Types.Inode, usedBlocks []Types.DirectoryBlock) (string, error) {
 	// Se limpia el strings que almacena el codigo dot del reporte
 	var RepDot string
+	var TempBlockDot string
 
 	RepDot = ""
 
@@ -750,65 +751,15 @@ func GraficarArbol(path string, part_start_Partition int, usedInodes []Types.Ino
 
 	start := time.Now()
 
-	// Pre-processing
-	//inodeMap := make(map[int]Types.Inode)
-	//blockMap := make(map[int]string) // Values: "folder", "file", "pointer"
-
-	// for inodeNum, inodo := range usedInodes { // Iterate with index
-
-	// 	RepDot += fmt.Sprintf("  inodo_%d [ shape=plaintext fontname=\"Century Gothic\" label=<\n", inodeNum)
-	// 	RepDot += "  <table bgcolor=\"royalblue\" border=\"0\" >"
-	// 	RepDot += "  <tr> <td colspan=\"2\"><b>Inode " + strconv.Itoa(inodeNum) + "</b></td></tr>\n"
-
-	// 	// ... (Other inode attributes) ...
-
-	// 	RepDot += "  <tr> <td bgcolor=\"lightsteelblue\"> i_blocks </td> <td bgcolor=\"white\"> "
-	// 	for _, blockNum := range inodo.I_block {
-	// 		if blockNum != 255 {
-	// 			RepDot += strconv.Itoa(int(blockNum)) + " "
-	// 		}
-	// 	}
-	// 	RepDot += "</td> </tr>\n"
-
-	// 	RepDot += "  </table>>]\n\n"
-	// }
-	// Optimized Main Loop
-	// for inodeNum, inodo := range usedInodes {
-	// 	RepDot += fmt.Sprintf("  inodo_%d [ shape=record fontname=\"Century Gothic\" label=\"{ Inode %d | { i_uid: %s | i_gid: %s | ... } | { i_blocks: %v } }\" ]\n\n", inodeNum, inodeNum, string(inodo.I_uid), string(inodo.I_gid), inodo.I_block)
-	// }
-
-	// Optimized Main Loop
-	// for inodeNum, inodo := range usedInodes {
-	// 	RepDot += fmt.Sprintf("  inodo_%d [ shape=plaintext fontname=\"Century Gothic\" label=<\n", inodeNum)
-	// 	RepDot += "  <table border=\"0\" cellborder=\"1\" cellspacing=\"0\" >"
-	// 	RepDot += fmt.Sprintf("  <tr> <td colspan=\"2\"><b>Inode %d</b></td></tr>\n", inodeNum)
-
-	// 	for blockNum := 0; blockNum < 15; blockNum++ {
-	// 		bgColor := "white"
-	// 		if blockNum >= 12 {
-	// 			bgColor = "lightsteelblue" // Or your preferred color
-	// 		}
-	// 		RepDot += fmt.Sprintf("  <tr> <td bgcolor=\"%s\">pt%d</td> <td bgcolor=\"%s\"> %d </td> </tr>\n", bgColor, blockNum+1, bgColor, inodo.I_block[blockNum])
-	// 	}
-
-	// 	RepDot += "  </table>>]\n\n"
-	// }
-
-	// fmt.Println("Total Used Inodes:", len(usedInodes))
-	// fmt.Println("Total Used Blocks:", len(usedBlocks))
-
 	superB := Types.SuperBlock{}
 
 	// --------Se extrae el SB del disco---------
 	var sbsize int = int(binary.Size(superB))
 	disco_actual.Seek(int64(part_start_Partition), 0)
-	data := leerEnFILE(disco_actual, sbsize)
-	//data := Utils.ReadObject(disco_actual, superB, int64(part_start_Partition))
+	data := leerEnArchivo(disco_actual, sbsize)
 	buffer := bytes.NewBuffer(data)
 	err = binary.Read(buffer, binary.LittleEndian, &superB)
 	if err != nil {
-		//Consola += "Binary.Read failed\n"
-		//msg_error(err)
 		fmt.Println("Binary.Read failed")
 		return "", err
 	}
@@ -816,14 +767,14 @@ func GraficarArbol(path string, part_start_Partition int, usedInodes []Types.Ino
 	for inodeNum, inodo := range usedInodes {
 		RepDot += fmt.Sprintf("  inodo_%d [shape=plaintext, fontname=\"Century Gothic\", label=<\n", inodeNum)
 		RepDot += "  <table border=\"0\" cellborder=\"1\" cellspacing=\"0\">"
-		RepDot += fmt.Sprintf("  <tr><td colspan=\"2\"><b>Inode %d</b></td></tr>\n", inodeNum)
+		RepDot += fmt.Sprintf("  <tr><td colspan=\"2\"><b>Inodo %d</b></td></tr>\n", inodeNum)
 
 		for blockNum := 0; blockNum < 15; blockNum++ {
 			bgColor := "white"
 			if blockNum >= 12 {
 				bgColor = "lightsteelblue"
 			}
-			RepDot += fmt.Sprintf("  <tr><td bgcolor=\"%s\">pt%d</td><td bgcolor=\"%s\"> %d </td></tr>\n", bgColor, blockNum+1, bgColor, inodo.I_block[blockNum])
+			RepDot += fmt.Sprintf("  <tr><td bgcolor=\"%s\">apt%d</td><td bgcolor=\"%s\"> %d </td></tr>\n", bgColor, blockNum+1, bgColor, inodo.I_block[blockNum])
 		}
 
 		RepDot += "  </table>>]\n\n"
@@ -831,8 +782,9 @@ func GraficarArbol(path string, part_start_Partition int, usedInodes []Types.Ino
 		// Block Generation
 		for blockNum := 0; blockNum < 15; blockNum++ {
 			blockIndex := int(inodo.I_block[blockNum])
-			if blockIndex != 255 && blockIndex >= 0 { // Assuming 255 indicates an unused block
-				fmt.Println("Block Index:", inodo.I_block[blockNum])
+			if blockIndex != 255 && blockIndex >= 0 {
+				//fmt.Println("Block Index:", inodo.I_block[blockNum])
+				TempBlockDot = ""
 
 				disco_actual, err = os.OpenFile(path, os.O_RDWR, 0660)
 				if err != nil {
@@ -840,48 +792,21 @@ func GraficarArbol(path string, part_start_Partition int, usedInodes []Types.Ino
 					continue
 				}
 
-				//var block interface{}
-				//var tempBlock interface{}
 				var directoryBlock Types.DirectoryBlock
 				var tempDirectoryBlock Types.DirectoryBlock
 				var fileBlock Types.FileBlock
 				var tempFileBlock Types.FileBlock
-				//inodeType := strings.TrimSpace(string(inodo.I_type[0]))
 				inodeType := inodo.I_type[0]
-
-				if inodeType != 0 {
-					tempNodeType := inodo.I_type[0]
-					fmt.Println("tempNodeType:", tempNodeType)
-				}
 
 				if inodeType == 0 {
 					bc_size := int(unsafe.Sizeof(tempDirectoryBlock))
 
 					blockStart := int64(superB.S_block_start) + int64(blockIndex*bc_size)
-					//disco_actual.Seek(int64(superB.S_block_start)+int64(bc_size)*int64(inodo.I_block[blockNum]), 0)
 					disco_actual.Seek(int64(blockStart), 0)
-
-					// err = binary.Read(disco_actual, binary.LittleEndian, &block)
-					// if err != nil {
-					// 	fmt.Println("Error al leer el bloque:", err)
-					// 	continue
-					// }
 
 					if err := Utilities.ReadObject2(disco_actual, &tempDirectoryBlock, int64(blockStart)); err != nil {
 						fmt.Println("Error al leer el bloque:", err)
 					}
-
-					// Read the block data into your struct
-					// data := leerEnFILE2(disco_actual, int(bc_size))
-					// fmt.Printf("Data length: %v\n", len(data))
-					// fmt.Printf("bc_size: %v\n", bc_size)
-					// buffer := bytes.NewBuffer(data)
-					// err = binary.Read(buffer, binary.LittleEndian, tempBlock)
-					// if err != nil {
-					// 	// Handle error
-					// 	fmt.Println("Error reading block:", err)
-					// 	continue
-					// }
 
 					directoryBlock = tempDirectoryBlock
 
@@ -889,16 +814,22 @@ func GraficarArbol(path string, part_start_Partition int, usedInodes []Types.Ino
 
 					RepDot += fmt.Sprintf("  block_%d [shape=plaintext, fontname=\"Century Gothic\", label=<\n", blockIndex)
 					RepDot += "  <table border=\"0\" cellborder=\"1\" cellspacing=\"0\">"
-					RepDot += fmt.Sprintf("  <tr><td colspan=\"2\"><b>Block %d</b></td></tr>\n", blockIndex)
+					RepDot += fmt.Sprintf("  <tr><td colspan=\"2\"><b>Bloque %d</b></td></tr>\n", blockIndex)
 
 					for _, entry := range directoryBlock.B_content {
-						RepDot += fmt.Sprintf("  <tr><td>%s</td><td>%s</td></tr>\n", byteToStr(entry.B_name[:]), strconv.Itoa(int(entry.B_inodo)))
+						if byteToStr(entry.B_name[:]) != "" {
+							RepDot += fmt.Sprintf("  <tr><td>%s</td><td>%s</td></tr>\n", byteToStr(entry.B_name[:]), strconv.Itoa(int(entry.B_inodo)))
+							if int(entry.B_inodo) >= 0 {
+								TempBlockDot += fmt.Sprintf("  block_%d -> inodo_%d;\n", blockIndex, entry.B_inodo)
+							}
+						} else {
+							RepDot += fmt.Sprintf("  <tr><td>%s</td><td>%s</td></tr>\n", byteToStr(entry.B_name[:]), "-1")
+						}
 					}
-				} else if inodeType == 49 {
+				} else if inodeType == 49 { //49 es bloque usado para archivos
 					bc_size := int(unsafe.Sizeof(tempFileBlock))
 
 					blockStart := int64(superB.S_block_start) + int64(blockIndex*bc_size)
-					//disco_actual.Seek(int64(superB.S_block_start)+int64(bc_size)*int64(inodo.I_block[blockNum]), 0)
 					disco_actual.Seek(int64(blockStart), 0)
 
 					if err := Utilities.ReadObject2(disco_actual, &tempFileBlock, int64(blockStart)); err != nil {
@@ -911,42 +842,26 @@ func GraficarArbol(path string, part_start_Partition int, usedInodes []Types.Ino
 
 					RepDot += fmt.Sprintf("  block_%d [shape=plaintext, fontname=\"Century Gothic\", label=<\n", blockIndex)
 					RepDot += "  <table border=\"0\" cellborder=\"1\" cellspacing=\"0\">"
-					RepDot += fmt.Sprintf("  <tr><td colspan=\"2\"><b>Block %d</b></td></tr>\n", blockIndex)
+					RepDot += fmt.Sprintf("  <tr><td colspan=\"2\"><b>Bloque %d</b></td></tr>\n", blockIndex)
 
-					RepDot += fmt.Sprintf("  <tr><td>%s</td></tr>\n", byteToStr(fileBlock.B_content[:]))
+					var content string = Utils.CleanPartitionName(fileBlock.B_content[:])
+					if strings.Contains(content, "\n") {
+						content = strings.ReplaceAll(content, "\n", "<br/>")
+					}
+					RepDot += fmt.Sprintf("  <tr><td>%s</td></tr>\n", content)
 				}
-
-				// if inodeType == "1" {
-				// 	fileBlock := block.(Types.FileBlock)
-				// 	RepDot += fmt.Sprintf("  <tr><td>%s</td><td></td></tr>\n", byteToStr(fileBlock.B_content[:]))
-				// } else if inodeType == "0" {
-				// 	for _, entry := range block.(Types.DirectoryBlock).B_content {
-				// 		RepDot += fmt.Sprintf("  <tr><td>%s</td><td></td></tr>\n", byteToStr(entry.B_name[:]))
-				// 	}
-				// }
-
-				// block := usedBlocks[blockIndex]
-
-				// RepDot += fmt.Sprintf("  block_%d [shape=plaintext, fontname=\"Century Gothic\", label=<\n", blockIndex)
-				// RepDot += "  <table border=\"0\" cellborder=\"1\" cellspacing=\"0\">"
-				// RepDot += fmt.Sprintf("  <tr><td colspan=\"2\"><b>Block %d</b></td></tr>\n", blockIndex)
-
-				// inodeType := strings.TrimSpace(string(inodo.I_type[0]))
-				// if inodeType == "1" { // Check if it's a file block
-				// 	// Assuming file content is present in the first entry of B_content
-				// 	RepDot += fmt.Sprintf("  <tr><td>%s</td><td></td></tr>\n", byteToStr(block.B_content[0].B_name[:]))
-				// } else if inodeType == "0" { // Check for folder block
-				// 	for _, entry := range block.B_content {
-				// 		RepDot += fmt.Sprintf("  <tr><td>%s</td><td>%d</td></tr>\n", byteToStr(entry.B_name[:]), entry.B_inodo) // Assuming the correct field name is B_inumber
-				// 	}
-				// }
 
 				RepDot += "  </table>>]\n\n"
 			}
+
+			if blockIndex != 255 && blockIndex >= 0 {
+				RepDot += fmt.Sprintf("  inodo_%d:apt%d -> block_%d;\n", inodeNum, blockNum+1, blockIndex)
+			}
+		}
+		if TempBlockDot != "" {
+			RepDot += TempBlockDot
 		}
 	}
-
-	// Similar process for blockMap
 
 	elapsed := time.Since(start)
 	fmt.Println("myFunction() took:", elapsed)
@@ -954,7 +869,6 @@ func GraficarArbol(path string, part_start_Partition int, usedInodes []Types.Ino
 	RepDot += "\n\n}"
 	disco_actual.Close()
 
-	//Consola += "Reporte Tree generado con exito!\n"
 	fmt.Println("Reporte Tree generado con exito!")
 
 	return RepDot, nil
@@ -962,334 +876,6 @@ func GraficarArbol(path string, part_start_Partition int, usedInodes []Types.Ino
 
 func byteToStrv2(array []byte) string {
 	return string(bytes.TrimRight(array, "\x00")) // Efficient Null-Byte Trimming
-}
-
-func GraficarTREE(path string, part_start_Partition int) (string, error) {
-	// Se limpia el strings que almacena el codigo dot del reporte
-	var RepDot string
-
-	RepDot = ""
-
-	// Apertura del archivo del disco binario
-	disco_actual, err := os.OpenFile(path, os.O_RDWR, 0660)
-	if err != nil {
-		//msg_error(err)
-		return "", err
-	}
-	defer disco_actual.Close()
-
-	// Get file statistics
-	stat, err := disco_actual.Stat()
-	if err != nil {
-		fmt.Printf("error getting file stats: %w", err)
-	} else {
-		fmt.Printf("File size: %d bytes\n", stat.Size())
-	}
-
-	// Estructuras necesarias a utilizar
-	superB := Types.SuperBlock{}
-	inodo := Types.Inode{}
-	carpeta := Types.DirectoryBlock{}
-	archivo := Types.FileBlock{}
-	apuntador := Types.PointerBlock{}
-
-	// Tamaño de algunas estructuras
-	var inodoTable Types.Inode
-	const i_size = unsafe.Sizeof(inodoTable)
-
-	var blockCarpeta Types.DirectoryBlock
-	const bc_size = unsafe.Sizeof(blockCarpeta)
-
-	var blockArchivo Types.FileBlock
-	const ba_size = unsafe.Sizeof(blockArchivo)
-
-	var blockApuntador Types.PointerBlock
-	const bapu_size = unsafe.Sizeof(blockApuntador)
-
-	// --------Se extrae el SB del disco---------
-	var sbsize int = int(binary.Size(superB))
-	disco_actual.Seek(int64(part_start_Partition), 0)
-	data := leerEnFILE(disco_actual, sbsize)
-	//data := Utils.ReadObject(disco_actual, superB, int64(part_start_Partition))
-	buffer := bytes.NewBuffer(data)
-	err = binary.Read(buffer, binary.LittleEndian, &superB)
-	if err != nil {
-		//Consola += "Binary.Read failed\n"
-		//msg_error(err)
-		fmt.Println("Binary.Read failed")
-		return "", err
-	}
-
-	aux := superB.S_bm_inode_start
-	i := 0
-
-	RepDot += "digraph G{\n\n"
-	RepDot += "    rankdir=\"LR\" \n"
-
-	// Creamos lo inodos
-	start := time.Now()
-	for aux < superB.S_bm_block_start {
-
-		disco_actual.Seek(int64(superB.S_bm_inode_start)+int64(i), 0)
-		aux++
-		port := 0
-		dataBMI := getc3(disco_actual) // me devuelve el dato en byte
-		bufINT := int(dataBMI)         // Lo convierto en int
-		buffer := strconv.Itoa(bufINT) // Convierto el int a string
-
-		if buffer == "1" {
-			var inodosize int = int(binary.Size(inodo))
-			disco_actual.Seek(int64(superB.S_inode_start)+int64(i_size)*int64(i), 0)
-			data := leerEnFILE(disco_actual, inodosize)
-			buffer := bytes.NewBuffer(data)
-			err = binary.Read(buffer, binary.BigEndian, &inodo)
-			if err != nil {
-				//Consola += "Binary.Read failed\n"
-				//msg_error(err)
-				fmt.Println("Binary.Read failed")
-			}
-
-			RepDot += "    inodo_" + strconv.Itoa(i) + " [ shape=plaintext fontname=\"Century Gothic\" label=<\n"
-			RepDot += "   <table bgcolor=\"royalblue\" border=\"0\" >"
-			RepDot += "    <tr> <td colspan=\"2\"><b>Inode " + strconv.Itoa(i) + "</b></td></tr>\n"
-			RepDot += "    <tr> <td bgcolor=\"lightsteelblue\"> i_uid </td> <td bgcolor=\"white\"> " + Utils.CleanPartitionName([]byte(strconv.Itoa(int(inodo.I_uid)))) + " " + strconv.Itoa(int(inodo.I_uid)) + " </td>  </tr>\n"
-			RepDot += "    <tr> <td bgcolor=\"lightsteelblue\"> i_gid </td> <td bgcolor=\"white\"> " + Utils.CleanPartitionName([]byte(strconv.Itoa(int(inodo.I_gid)))) + " </td>  </tr>\n"
-			RepDot += "    <tr> <td bgcolor=\"lightsteelblue\"> i_size </td><td bgcolor=\"white\"> " + Utils.CleanPartitionName([]byte(strconv.Itoa(int(inodo.I_size)))) + " </td> </tr>\n"
-			RepDot += "    <tr> <td bgcolor=\"lightsteelblue\"> i_atime </td> <td bgcolor=\"white\"> " + byteToStr(inodo.I_atime[:]) + " </td> </tr>\n"
-			RepDot += "    <tr> <td bgcolor=\"lightsteelblue\"> i_ctime </td> <td bgcolor=\"white\"> " + byteToStr(inodo.I_ctime[:]) + " </td> </tr>\n"
-			RepDot += "    <tr> <td bgcolor=\"lightsteelblue\"> i_mtime </td> <td bgcolor=\"white\"> " + byteToStr(inodo.I_mtime[:]) + " </td> </tr>\n"
-
-			for b := 0; b < 15; b++ {
-				RepDot += "    <tr> <td bgcolor=\"lightsteelblue\"> i_block_" + strconv.Itoa(port) + " </td> <td bgcolor=\"white\" port=\"f" + strconv.Itoa(b) + "\"> " + strconv.Itoa(int(inodo.I_block[b])) + " </td></tr>\n"
-				port++
-			}
-
-			RepDot += "    <tr> <td bgcolor=\"lightsteelblue\"> i_type </td> <td bgcolor=\"white\"> " + byteToStr(inodo.I_type[:]) + " </td>  </tr>\n"
-			RepDot += "    <tr> <td bgcolor=\"lightsteelblue\"> i_perm </td> <td bgcolor=\"white\"> " + byteToStr(inodo.I_perm[:]) + " </td>  </tr>\n"
-			RepDot += "   </table>>]\n\n"
-
-			// Creamos los bloques relacionados al inodo
-			for j := 0; j < 15; j++ {
-				port = 0
-
-				// El 255 representa al -1
-				if int(inodo.I_block[j]) != 255 {
-
-					disco_actual.Seek(int64(superB.S_bm_block_start)+int64(inodo.I_block[j]), 0)
-
-					buffINT := int(getc(disco_actual))
-					buffer := strconv.Itoa(buffINT)
-
-					if buffer == "1" { // Bloque carpeta
-						disco_actual.Seek(int64(superB.S_block_start)+int64(bc_size)*int64(inodo.I_block[j]), 0)
-						// --------Se extrae el Bloque Carpeta del disco---------
-						var bcsize int = int(binary.Size(carpeta))
-						data := leerEnFILE(disco_actual, bcsize)
-						buff := bytes.NewBuffer(data)
-						err = binary.Read(buff, binary.BigEndian, &carpeta)
-						if err != nil {
-							// Consola += "Binary.Read failed\n"
-							// msg_error(err)
-							fmt.Println("Binary.Read failed")
-						}
-
-						RepDot += "    bloque_" + strconv.Itoa(int(inodo.I_block[j])) + " [shape=plaintext fontname=\"Century Gothic\" label=< \n"
-						RepDot += "   <table bgcolor=\"seagreen\" border=\"0\">\n"
-						RepDot += "    <tr> <td colspan=\"2\"><b>Folder block " + strconv.Itoa(int(inodo.I_block[j])) + "</b></td></tr>\n"
-						RepDot += "    <tr> <td bgcolor=\"mediumseagreen\"> b_name </td> <td bgcolor=\"mediumseagreen\"> b_inode </td></tr>\n"
-
-						for c := 0; c < 4; c++ {
-							RepDot += "    <tr> <td bgcolor=\"white\" > " + byteToStr(carpeta.B_content[c].B_name[:]) + " </td> <td bgcolor=\"white\"  port=\"f" + strconv.Itoa(port) + "\"> " + string(carpeta.B_content[c].B_inodo) + " </td></tr>\n"
-							port++
-						}
-
-						RepDot += "   </table>>]\n\n"
-
-						// Relacion de bloques a inodos
-						for c := 0; c < 4; c++ {
-							if carpeta.B_content[c].B_inodo != -1 {
-
-								if strings.Compare(byteToStr(carpeta.B_content[c].B_name[:]), ".") != 0 && strings.Compare(byteToStr(carpeta.B_content[c].B_name[:]), "..") != 0 {
-									RepDot += "    bloque_" + strconv.Itoa(int(inodo.I_block[j])) + ":f" + strconv.Itoa(c) + " -> inodo_" + string(carpeta.B_content[c].B_inodo) + ";\n"
-								}
-							}
-						}
-
-					} else if buffer == "2" { // Bloque archivo
-						disco_actual.Seek(int64(superB.S_block_start)+int64(ba_size)*int64(inodo.I_block[j]), 0)
-						// --------Se extrae el Bloque Archivo del disco---------
-						var basize int = int(binary.Size(archivo))
-						data := leerEnFILE(disco_actual, basize)
-						buff := bytes.NewBuffer(data)
-						err = binary.Read(buff, binary.BigEndian, &archivo)
-						if err != nil {
-							// Consola += "Binary.Read failed\n"
-							// msg_error(err)
-							fmt.Println("Binary.Read failed")
-						}
-
-						RepDot += "    bloque_" + strconv.Itoa(int(inodo.I_block[j])) + " [shape=plaintext fontname=\"Century Gothic\" label=< \n"
-						RepDot += "   <table border=\"0\" bgcolor=\"sandybrown\">\n"
-						RepDot += "    <tr> <td> <b>File block " + strconv.Itoa(int(inodo.I_block[j])) + "</b></td></tr>\n"
-						RepDot += "    <tr> <td bgcolor=\"white\"> " + byteToStr(archivo.B_content[:]) + " </td></tr>\n"
-						RepDot += "   </table>>]\n\n"
-
-					} else if buffer == "3" { // Bloque apuntador
-						disco_actual.Seek(int64(superB.S_block_start)+int64(bapu_size)*int64(inodo.I_block[j]), 0)
-						// --------Se extrae el Bloque Apuntador del disco---------
-						var bapusize int = int(binary.Size(apuntador))
-						data := leerEnFILE(disco_actual, bapusize)
-						buff := bytes.NewBuffer(data)
-						err = binary.Read(buff, binary.BigEndian, &apuntador)
-						if err != nil {
-							// Consola += "Binary.Read failed\n"
-							// msg_error(err)
-						}
-
-						RepDot += "    bloque_" + strconv.Itoa(int(inodo.I_block[j])) + " [shape=plaintext fontname=\"Century Gothic\" label=< \n"
-						RepDot += "   <table border=\"0\" bgcolor=\"khaki\">\n"
-						RepDot += "    <tr> <td> <b>Pointer block " + strconv.Itoa(int(inodo.I_block[j])) + "</b></td></tr>\n"
-
-						for a := 0; a < 16; a++ {
-							RepDot += "    <tr> <td bgcolor=\"white\" port=\"f" + strconv.Itoa(port) + "\">" + string(apuntador.B_pointers[a]) + "</td> </tr>\n"
-							port++
-						}
-
-						RepDot += "   </table>>]\n\n"
-
-						// Bloques carpeta/archivo  del bloque de apuntadores
-						for x := 0; x < 16; x++ {
-							port = 0
-
-							// El 255 representa al -1
-							if int(apuntador.B_pointers[x]) != 255 && int(apuntador.B_pointers[x]) != -1 {
-								disco_actual.Seek(int64(superB.S_bm_block_start)+int64(apuntador.B_pointers[x]), 0)
-
-								buffINT := int(getc2(disco_actual))
-								buffer := strconv.Itoa(buffINT)
-
-								if buffer == "1" {
-									disco_actual.Seek(int64(superB.S_block_start)+int64(bc_size)*int64(apuntador.B_pointers[x]), 0)
-									// --------Se extrae el Bloque Carpeta del disco---------
-									var bcsize int = int(binary.Size(carpeta))
-									data := leerEnFILE(disco_actual, bcsize)
-									buff := bytes.NewBuffer(data)
-									err = binary.Read(buff, binary.BigEndian, &carpeta)
-									if err != nil {
-										// Consola += "Binary.Read failed\n"
-										// msg_error(err)
-									}
-
-									RepDot += "    bloque_" + string(apuntador.B_pointers[x]) + " [shape=plaintext fontname=\"Century Gothic\" label=< \n"
-									RepDot += "   <table bgcolor=\"seagreen\" border=\"0\">\n"
-									RepDot += "    <tr> <td colspan=\"2\"><b>Folder block " + string(apuntador.B_pointers[x]) + "</b></td></tr>\n"
-									RepDot += "    <tr> <td bgcolor=\"mediumseagreen\"> b_name </td> <td bgcolor=\"mediumseagreen\"> b_inode </td></tr>\n"
-
-									for c := 0; c < 4; c++ {
-										RepDot += "    <tr> <td bgcolor=\"white\" > " + byteToStr(carpeta.B_content[c].B_name[:]) + " </td> <td bgcolor=\"white\"  port=\"f" + strconv.Itoa(port) + "\"> " + string(carpeta.B_content[c].B_inodo) + " </td></tr>\n"
-										port++
-									}
-
-									RepDot += "   </table>>]\n\n"
-
-									// Relacion de bloques a inodos
-									for c := 0; c < 4; c++ {
-										if carpeta.B_content[c].B_inodo != -1 {
-
-											if strings.Compare(byteToStr(carpeta.B_content[c].B_name[:]), ".") != 0 && strings.Compare(byteToStr(carpeta.B_content[c].B_name[:]), "..") != 0 {
-												RepDot += "    bloque_" + string(apuntador.B_pointers[x]) + ":f" + strconv.Itoa(c) + " -> inodo_" + string(carpeta.B_content[c].B_inodo) + ";\n"
-											}
-										}
-									}
-								} else if buffer == "2" {
-									disco_actual.Seek(int64(superB.S_block_start)+int64(ba_size)*int64(apuntador.B_pointers[x]), 0)
-									// --------Se extrae el Bloque Archivo del disco---------
-									var basize int = int(binary.Size(archivo))
-									data := leerEnFILE(disco_actual, basize)
-									buff := bytes.NewBuffer(data)
-									err = binary.Read(buff, binary.BigEndian, &archivo)
-									if err != nil {
-										// Consola += "Binary.Read failed\n"
-										// msg_error(err)
-										fmt.Println("Binary.Read failed")
-									}
-
-									RepDot += "    bloque_" + string(apuntador.B_pointers[x]) + " [shape=plaintext fontname=\"Century Gothic\" label=< \n"
-									RepDot += "   <table border=\"0\" bgcolor=\"sandybrown\">\n"
-									RepDot += "    <tr> <td> <b>File block " + string(apuntador.B_pointers[x]) + "</b></td></tr>\n"
-									RepDot += "    <tr> <td bgcolor=\"white\"> " + byteToStr(archivo.B_content[:]) + " </td></tr>\n"
-									RepDot += "   </table>>]\n\n"
-
-								}
-								//else if buffer == "3" {
-								// 	// NO SE IMPLEMENTO
-								// 	Consola += ""
-								// }
-							}
-						}
-
-						// Relacion de bloques apuntador a bloques archivos/carpetas
-						for b := 0; b < 16; b++ {
-							// El 255 representa al -1
-							if int(apuntador.B_pointers[b]) != 255 {
-								RepDot += "    bloque_" + strconv.Itoa(int(inodo.I_block[j])) + ":f" + strconv.Itoa(b) + " -> bloque_" + string(apuntador.B_pointers[b]) + ";\n"
-							}
-						}
-					}
-					// Relacion de inodos a bloques
-					RepDot += "    inodo_" + strconv.Itoa(i) + ":f" + strconv.Itoa(j) + " -> bloque_" + strconv.Itoa(int(inodo.I_block[j])) + "; \n"
-				}
-			}
-		}
-		i++
-
-	}
-	elapsed := time.Since(start)
-	fmt.Println("myFunction() took:", elapsed)
-
-	RepDot += "\n\n}"
-	disco_actual.Close()
-
-	//Consola += "Reporte Tree generado con exito!\n"
-	fmt.Println("Reporte Tree generado con exito!")
-
-	return RepDot, nil
-}
-
-/*
-Metodo que lee un byte del archivo en la posicion en donde se encuentra el puntero
-*/
-func getc(f *os.File) byte {
-	b := make([]byte, 1)
-	_, err := f.Read(b)
-
-	if err != nil { //si es error lo reportamos
-		fmt.Println("getc error:", err)
-	}
-
-	return b[0]
-}
-
-func getc2(f *os.File) byte {
-	b := make([]byte, 1)
-	_, err := f.Read(b)
-
-	if err != nil { //si es error lo reportamos
-		fmt.Println("getc2 error:", err)
-	}
-
-	return b[0]
-}
-
-func getc3(f *os.File) byte {
-	b := make([]byte, 1)
-	_, err := f.Read(b)
-
-	if err != nil { //si es error lo reportamos
-		fmt.Println("getc3 error:", err)
-	}
-
-	return b[0]
 }
 
 func byteToStr(array []byte) string { //paso de []byte a string (SIRVE EN ESPECIAL PARA OBTENER UN VALOR NUMERICO)
@@ -1331,7 +917,7 @@ func byteToInt(part []byte) int {
 	return fus
 }
 
-func leerEnFILE(file *os.File, n int) []byte { //leemos n bytes del DD y lo devolvemos
+func leerEnArchivo(file *os.File, n int) []byte { //leemos n bytes del DD y lo devolvemos
 	Arraybytes := make([]byte, n)   //molde q contendra lo q leemos
 	_, err := file.Read(Arraybytes) // recogemos la info q nos interesa y la guardamos en el molde
 
@@ -1340,27 +926,6 @@ func leerEnFILE(file *os.File, n int) []byte { //leemos n bytes del DD y lo devo
 	}
 	return Arraybytes
 }
-
-func leerEnFILE2(file *os.File, n int) []byte {
-	arrayBytes := make([]byte, n)
-	bytesRead := 0
-
-	for bytesRead < n {
-		numRead, err := file.Read(arrayBytes[bytesRead:]) // Read into the remaining slice
-		bytesRead += numRead
-		if err != nil {
-			if err == io.EOF {
-				break // Stop reading if we've hit the end of the file
-			}
-			fmt.Println(err) // Handle other read errors
-		}
-	}
-	return arrayBytes[:bytesRead] // Return the slice up to the number of bytes actually read
-}
-
-// Assuming the definition of Types.DirectoryBlock and Types.DirectoryEntry
-// Types.DirectoryBlock should have a field that's a slice or array of Types.DirectoryEntry
-// Types.DirectoryEntry is assumed to contain fields for the inode number (B_inodo) and the name (B_name)
 
 func ReadBlock0AndTraverseContents(filePath string, superblock Types.SuperBlock) ([]Types.Content, error) {
 	diskFile, err := os.Open(filePath)
