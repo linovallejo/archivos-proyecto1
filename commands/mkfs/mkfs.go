@@ -10,6 +10,7 @@ import (
 	Types "proyecto1/types"
 	Utilities "proyecto1/utils"
 	Utils "proyecto1/utils"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -965,4 +966,48 @@ func ReadBlock0AndTraverseContents(filePath string, superblock Types.SuperBlock)
 	}
 
 	return entries, nil
+}
+
+func GraficarSB(sb *Types.SuperBlock) (string, error) {
+	var builder strings.Builder
+
+	builder.WriteString("digraph G {\n")
+	builder.WriteString("    node [shape=none];\n")
+	builder.WriteString("    rankdir=\"LR\";\n")
+
+	builder.WriteString("    struct1 [label=<<TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\">\n")
+
+	dateTimeLayout := "2006-01-02 15:04:05" // Adjust layout if needed
+
+	sbValue := reflect.ValueOf(*sb)
+	sbType := sbValue.Type()
+
+	rowColor := "white"
+
+	for i := 0; i < sbValue.NumField(); i++ {
+		field := sbType.Field(i)
+		value := sbValue.Field(i)
+
+		switch field.Name {
+		case "S_mtime", "S_umtime":
+			timestamp := time.Unix(int64(value.Interface().([17]byte)[0]), 0)
+			builder.WriteString(fmt.Sprintf("<TR><TD bgcolor=\"%s\">%s</TD><TD bgcolor=\"%s\">%v</TD></TR>", rowColor, field.Name, rowColor, timestamp.Format(dateTimeLayout)))
+		default:
+			builder.WriteString(fmt.Sprintf("<TR><TD bgcolor=\"%s\">%s</TD><TD bgcolor=\"%s\">%v</TD></TR>", rowColor, field.Name, rowColor, value.Interface()))
+		}
+
+		// Alternate row color
+		if rowColor == "white" {
+			rowColor = "lightcyan2"
+		} else {
+			rowColor = "white"
+		}
+	}
+
+	builder.WriteString("    </TABLE>>];\n")
+
+	builder.WriteString("}\n")
+
+	return builder.String(), nil
+
 }
