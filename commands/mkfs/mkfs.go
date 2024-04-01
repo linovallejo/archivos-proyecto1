@@ -767,7 +767,7 @@ func GraficarArbol(path string, part_start_Partition int, usedInodes []Types.Ino
 	for inodeNum, inodo := range usedInodes {
 		RepDot += fmt.Sprintf("  inodo_%d [shape=plaintext, fontname=\"Century Gothic\", label=<\n", inodeNum)
 		RepDot += "  <table border=\"0\" cellborder=\"1\" cellspacing=\"0\">"
-		RepDot += fmt.Sprintf("  <tr><td colspan=\"2\"><b>Inodo %d</b></td></tr>\n", inodeNum)
+		RepDot += fmt.Sprintf("  <tr><td colspan=\"2\" port=\"title_inode_%d\"><b>Inodo %d</b></td></tr>\n", inodeNum, inodeNum)
 
 		for blockNum := 0; blockNum < 15; blockNum++ {
 			bgColor := "white"
@@ -814,13 +814,14 @@ func GraficarArbol(path string, part_start_Partition int, usedInodes []Types.Ino
 
 					RepDot += fmt.Sprintf("  block_%d [shape=plaintext, fontname=\"Century Gothic\", label=<\n", blockIndex)
 					RepDot += "  <table border=\"0\" cellborder=\"1\" cellspacing=\"0\">"
-					RepDot += fmt.Sprintf("  <tr><td colspan=\"2\"><b>Bloque %d</b></td></tr>\n", blockIndex)
+					RepDot += fmt.Sprintf("  <tr><td colspan=\"2\" port=\"title_block_%d_%d\"><b>Bloque %d</b></td></tr>\n", inodeNum, blockNum, blockIndex)
 
-					for _, entry := range directoryBlock.B_content {
+					for index, entry := range directoryBlock.B_content {
+						entryPortID := fmt.Sprintf("entry_%d_%d_%d", inodeNum, blockNum, index)
 						if byteToStr(entry.B_name[:]) != "" {
-							RepDot += fmt.Sprintf("  <tr><td>%s</td><td>%s</td></tr>\n", byteToStr(entry.B_name[:]), strconv.Itoa(int(entry.B_inodo)))
+							RepDot += fmt.Sprintf("  <tr><td port=\"%s\">%s</td><td>%s</td></tr>\n", entryPortID, byteToStr(entry.B_name[:]), strconv.Itoa(int(entry.B_inodo)))
 							if int(entry.B_inodo) >= 0 {
-								TempBlockDot += fmt.Sprintf("  block_%d -> inodo_%d;\n", blockIndex, entry.B_inodo)
+								TempBlockDot += fmt.Sprintf("  block_%d:%s -> inodo_%d:title_inode_%d;\n", blockIndex, entryPortID, entry.B_inodo, entry.B_inodo)
 							}
 						} else {
 							RepDot += fmt.Sprintf("  <tr><td>%s</td><td>%s</td></tr>\n", byteToStr(entry.B_name[:]), "-1")
@@ -840,9 +841,11 @@ func GraficarArbol(path string, part_start_Partition int, usedInodes []Types.Ino
 
 					disco_actual.Close()
 
+					//entryPortID := fmt.Sprintf("entry_%d_%d_%d", inodeNum, blockNum, 0)
+
 					RepDot += fmt.Sprintf("  block_%d [shape=plaintext, fontname=\"Century Gothic\", label=<\n", blockIndex)
 					RepDot += "  <table border=\"0\" cellborder=\"1\" cellspacing=\"0\">"
-					RepDot += fmt.Sprintf("  <tr><td colspan=\"2\"><b>Bloque %d</b></td></tr>\n", blockIndex)
+					RepDot += fmt.Sprintf("  <tr><td colspan=\"2\" port=\"title_block_%d_%d\"><b>Bloque %d</b></td></tr>\n", blockIndex, blockNum, blockIndex)
 
 					var content string = Utils.CleanPartitionName(fileBlock.B_content[:])
 					if strings.Contains(content, "\n") {
@@ -855,7 +858,7 @@ func GraficarArbol(path string, part_start_Partition int, usedInodes []Types.Ino
 			}
 
 			if blockIndex != 255 && blockIndex >= 0 {
-				RepDot += fmt.Sprintf("  inodo_%d:apt%d -> block_%d;\n", inodeNum, blockNum+1, blockIndex)
+				RepDot += fmt.Sprintf("  inodo_%d:apt%d -> block_%d:title_block_%d_%d;\n", inodeNum, blockNum+1, blockIndex, inodeNum, blockNum)
 			}
 		}
 		if TempBlockDot != "" {
