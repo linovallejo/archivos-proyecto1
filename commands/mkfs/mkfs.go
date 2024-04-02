@@ -1011,3 +1011,77 @@ func GraficarSB(sb *Types.SuperBlock) (string, error) {
 	return builder.String(), nil
 
 }
+
+func GraficarInodos(inodosUsados []Types.Inode) (string, error) {
+	var builder strings.Builder
+
+	builder.WriteString("digraph G {\n")
+	builder.WriteString("    node [shape=none];\n")
+	builder.WriteString("    rankdir=\"LR\";\n")
+
+	for idx, inode := range inodosUsados {
+		builder.WriteString(fmt.Sprintf("  inode_%d [label=<", idx))
+		builder.WriteString("    <TABLE BORDER=\"0\" CELLBORDER=\"1\" CELLSPACING=\"0\">\n")
+		builder.WriteString(fmt.Sprintf("<TR><TD COLSPAN=\"2\" ALIGN=\"CENTER\">Inode %d</TD></TR>", idx))
+		builder.WriteString(fmt.Sprintf("<TR><TD>I_uid</TD><TD>%d</TD></TR>", inode.I_uid))
+		builder.WriteString(fmt.Sprintf("<TR><TD>I_gid</TD><TD>%d</TD></TR>", inode.I_gid))
+		builder.WriteString(fmt.Sprintf("<TR><TD>I_size</TD><TD>%d</TD></TR>", inode.I_size))
+
+		dateTimeLayout := "2006-01-02 15:04:05"
+		builder.WriteString(fmt.Sprintf("<TR><TD>I_atime</TD><TD>%s</TD></TR>", time.Unix(int64(inode.I_atime[0]), 0).Format(dateTimeLayout)))
+		builder.WriteString(fmt.Sprintf("<TR><TD>I_ctime</TD><TD>%s</TD></TR>", time.Unix(int64(inode.I_ctime[0]), 0).Format(dateTimeLayout)))
+		builder.WriteString(fmt.Sprintf("<TR><TD>I_mtime</TD><TD>%s</TD></TR>", time.Unix(int64(inode.I_mtime[0]), 0).Format(dateTimeLayout)))
+
+		var inodeTypeString string
+		if inode.I_type[0] == 0 {
+			inodeTypeString = "0"
+		} else if inode.I_type[0] == 49 { // Assuming 49 is a specific value for your use case
+			inodeTypeString = "1"
+		}
+		builder.WriteString(fmt.Sprintf("<TR><TD>I_type</TD><TD>%v</TD></TR>", inodeTypeString))
+
+		permString := fmt.Sprintf("%s,%s,%s",
+			permByteToString(inode.I_perm[0]),
+			permByteToString(inode.I_perm[1]),
+			permByteToString(inode.I_perm[2]))
+		builder.WriteString(fmt.Sprintf("<TR><TD>I_perm</TD><TD>%s</TD></TR>", permString))
+
+		// Display blocks with value not equals to -1
+		for blockIdx, blockIndex := range inode.I_block {
+			if blockIndex != -1 {
+				builder.WriteString(fmt.Sprintf("<TR><TD>I_block_%d</TD><TD>%d</TD></TR>", blockIdx+1, blockIndex))
+			}
+		}
+
+		builder.WriteString("    </TABLE>>];\n")
+
+		// Point each Inode to the next Inode
+		if idx+1 < len(inodosUsados) {
+			builder.WriteString(fmt.Sprintf("  inode_%d -> inode_%d;\n", idx, idx+1))
+		}
+	}
+
+	builder.WriteString("}\n")
+
+	return builder.String(), nil
+}
+
+func permByteToString(perm byte) string {
+	var permStr strings.Builder
+	if perm&0x4 != 0 {
+		permStr.WriteString("r")
+	} else {
+		permStr.WriteString("-")
+	}
+	if perm&0x2 != 0 {
+		permStr.WriteString("w")
+	} else {
+		permStr.WriteString("-")
+	}
+	if perm&0x1 != 0 {
+		permStr.WriteString("x")
+	} else {
+		permStr.WriteString("-")
+	}
+	return permStr.String()
+}

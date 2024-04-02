@@ -41,3 +41,6 @@ login -user=root -pass=123 -id=A123 #ERR SESION INICIADA
 
 pause
 mkdisk -param=x #ERR
+
+#------------------------REPORTES 5----------------
+rep -id=A123 -path=".\reportes\reporte5_inode.jpg" -name=inode

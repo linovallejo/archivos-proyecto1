@@ -752,6 +752,66 @@ func rep(params []string) {
 
 		dotCode, err = Mkfs.GraficarSB(&superblock)
 
+		if err != nil {
+			fmt.Println("Error generating sb report:", err)
+			return
+		} else {
+			fmt.Println("Reporte SB generado con exito!")
+		}
+
+	case "inode":
+		// Leer el MBR existente
+		mbr, err := Fdisk.ReadMBR(archivoBinarioDisco)
+		if err != nil {
+			fmt.Println("Error leyendo el MBR:", err)
+			return
+		}
+
+		/// fmt.Println("mbr in rep:", mbr)
+		/// fmt.Println("id:", id)
+
+		_, err = Mount.ValidatePartitionId(mbr, id)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		// else {
+		// 	fmt.Println("Partición encontrada.")
+		// }
+
+		var partitionStart int32 = 0
+		partitionStart, err = Mount.GetPartitionStart(mbr, id)
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		// else {
+		// 	fmt.Println("Start:", partitionStart)
+		// }
+
+		superblock, err := Mkfs.ReadSuperBlock(archivoBinarioDisco, partitionStart)
+		if err != nil {
+			fmt.Println("Error reading superblock:", err)
+			return
+		}
+
+		//fmt.Println("Superblock in rep:", superblock)
+
+		allUsedInodes, err := Mkfs.ReadAllUsedInodesFromFile(archivoBinarioDisco, superblock)
+		if err != nil {
+			fmt.Println("Error reading inodes:", err)
+			return
+		}
+
+		dotCode, err = Mkfs.GraficarInodos(allUsedInodes)
+
+		if err != nil {
+			fmt.Println("Error generating inode report:", err)
+			return
+		} else {
+			fmt.Println("Reporte Inode generado con exito!")
+		}
 	}
 
 	//fmt.Println("Dot Code:", dotCode)
