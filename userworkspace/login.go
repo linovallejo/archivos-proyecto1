@@ -11,6 +11,19 @@ import (
 	"strings"
 )
 
+type Sesion struct {
+	Id_user     int
+	Id_grp      int
+	Start_SB    int
+	System_type int
+	User_name   string
+	Path        string
+	Fit         [1]byte
+}
+
+// var CurrentSession Sesion
+// var IsLoginFlag bool = false
+
 func ExtractLoginParams(params []string) (string, string, string, error) {
 	var user string = ""
 	var pass string = ""

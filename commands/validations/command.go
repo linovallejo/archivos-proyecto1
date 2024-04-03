@@ -53,6 +53,9 @@ var commandParams = map[string]map[string]CommandParamDetails{
 		"pass": {IsMandatory: true},
 		"id":   {IsMandatory: true},
 	},
+	"mkgrp": {
+		"name": {IsMandatory: true},
+	},
 }
 
 func ValidarParametros(commandLine string) error {
@@ -102,7 +105,6 @@ func ValidarParametros(commandLine string) error {
 
 var CommandsNotImplemented = []string{
 	"logout",
-	"mkgrp",
 	"rmgrp",
 	"mkusr",
 	"rmusr",

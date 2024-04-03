@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	Mkgrp "proyecto1/UserWorkspace"
 	Fdisk "proyecto1/commands/fdisk"
 	Mkdisk "proyecto1/commands/mkdisk"
 	Mkfs "proyecto1/commands/mkfs"
@@ -20,8 +21,12 @@ import (
 )
 
 var rutaDiscos string = "./disks/MIA/P1/"
+
 var archivoBinarioDiscoActual string = ""
 var ajusteParticionActual string = "" // first fit, best fit, worst fit
+
+var CurrentSession UserWorkspace.Sesion
+var IsLoginFlag bool = false
 
 func main() {
 	Utils.LimpiarConsola()
@@ -184,6 +189,9 @@ func main() {
 					// 	return
 					// }
 					// Utils.PrintMBRv3(TempMBR3)
+				case strings.HasPrefix(commandLower, "mkgrp"):
+					params := strings.Fields(command)
+					mkgrp(params[1:])
 				}
 			}
 
@@ -869,6 +877,7 @@ func login(params []string) {
 		return
 	} else {
 		if Global.Usuario.Status {
+			IsLoginFlag = true
 			fmt.Println("Login exitoso")
 		} else {
 			fmt.Println("Login fallido")
@@ -884,3 +893,17 @@ func login(params []string) {
 // 		fmt.Println("Logout exitoso")
 // 	}
 // }
+
+func mkgrp(params []string) {
+	name, err := Mkgrp.ExtractMkgrpParams(params)
+	if err != nil {
+		fmt.Println("Error al procesar los parámetros MKFS:", err)
+	}
+
+	_, err = UserWorkspace.EjecutarMkgrp(name)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("mkgrp exitoso")
+	}
+}

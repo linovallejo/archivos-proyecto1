@@ -44,3 +44,6 @@ mkdisk -param=x #ERR
 
 #------------------------REPORTES 5----------------
 rep -id=A123 -path=".\reportes\reporte5_inode.jpg" -name=inode
+
+#CREACION DE GRUPOS
+mkgrp -name=usuarios
