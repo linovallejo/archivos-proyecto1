@@ -1,4 +1,4 @@
-package UserWorkspace
+package userworkspace
 
 import (
 	"encoding/binary"
@@ -11,15 +11,15 @@ import (
 	"strings"
 )
 
-type Sesion struct {
-	Id_user     int
-	Id_grp      int
-	Start_SB    int
-	System_type int
-	User_name   string
-	Path        string
-	Fit         [1]byte
-}
+// type Sesion struct {
+// 	Id_user     int
+// 	Id_grp      int
+// 	Start_SB    int
+// 	System_type int
+// 	User_name   string
+// 	Path        string
+// 	Fit         [1]byte
+// }
 
 // var CurrentSession Sesion
 // var IsLoginFlag bool = false
@@ -91,6 +91,8 @@ func Login(user string, pass string, id string, diskFileName string) error {
 
 	var partitionStatusStr string = ""
 	var index int = -1
+	var partitionStart int32 = 0
+	var partitionFit string = ""
 	// Iterate over the partitions
 	for i := 0; i < 4; i++ {
 		// fmt.Println("Partition id:", string(TempMBR.Partitions[i].Id[:]))
@@ -108,6 +110,8 @@ func Login(user string, pass string, id string, diskFileName string) error {
 				if strings.Contains(partitionStatusStr, "1") {
 					//fmt.Println("Partition is mounted")
 					index = i
+					partitionStart = TempMBR.Partitions[i].Start
+					partitionFit = string(TempMBR.Partitions[i].Fit[:])
 				} else {
 					//fmt.Println("Partition is not mounted")
 					return fmt.Errorf("Partition is not mounted")
@@ -162,6 +166,9 @@ func Login(user string, pass string, id string, diskFileName string) error {
 
 	//fmt.Println("Fileblock------------")
 	// Dividir la cadena en líneas
+	userId := ""
+	//groupName := ""
+	groupId := ""
 	lines := strings.Split(data, "\n")
 
 	// login -user=root -pass=123 -id=A119
@@ -177,10 +184,27 @@ func Login(user string, pass string, id string, diskFileName string) error {
 		if len(words) == 5 {
 			if (strings.Contains(words[3], user)) && (strings.Contains(words[4], pass)) {
 				login = true
+				userId = words[0]
 				break
 			}
 		}
 	}
+
+	for _, line := range lines {
+		// Imprimir cada línea
+		//fmt.Println("Line:", line)
+		words := strings.Split(line, ",")
+		//fmt.Println("Words:", words)
+
+		if len(words) == 3 {
+			if (strings.Contains(words[2], "root")) && (strings.Contains(words[1], "G")) {
+				groupId = words[0]
+				//groupName = words[2]
+				break
+			}
+		}
+	}
+
 	//fmt.Println("-------------------------------------------")
 
 	// Print object
@@ -191,8 +215,30 @@ func Login(user string, pass string, id string, diskFileName string) error {
 
 	if login {
 		//fmt.Println("User logged in")
-		Global.Usuario.Id = id
+		Global.Usuario.Id = userId
 		Global.Usuario.Status = true
+
+		// Convert id from string to int
+		idInt, err := strconv.Atoi(userId)
+		if err != nil {
+			return err
+		}
+
+		Global.SesionActual.Id_user = idInt
+		Global.SesionActual.User_name = user
+		Global.SesionActual.Path = diskFileName
+		Global.SesionActual.PartitionId = id
+		Global.SesionActual.PartitionStart = partitionStart
+		Global.SesionActual.System_type = int(tempSuperblock.S_filesystem_type)
+		copy(Global.SesionActual.Fit[:], []byte(partitionFit))
+		//Global.SesionActual.Id_grp = buscarGrupo(groupName)
+
+		idInt, err = strconv.Atoi(groupId)
+		if err != nil {
+			return err
+		}
+
+		Global.SesionActual.Id_grp = idInt
 	}
 
 	//fmt.Println("======End LOGIN======")

@@ -1,10 +1,11 @@
-package UserWorkspace
+package userworkspace
 
 import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
 	"os"
+	Global "proyecto1/global"
 	Types "proyecto1/types"
 	"strconv"
 	"strings"
@@ -12,7 +13,7 @@ import (
 	"unsafe"
 )
 
-var CurrentSession Sesion
+var CurrentSession Global.Sesion
 
 func ExtractMkgrpParams(params []string) (string, error) {
 	var name string = ""
@@ -44,7 +45,7 @@ func ExtractMkgrpParams(params []string) (string, error) {
 	return name, nil
 }
 
-func EjecutarMkgrp(grp_name string) (string, error) {
+func EjecutarMkgrp(groupName string, pathUsersFile string, CurrentSession Global.Sesion) (string, error) {
 
 	//if IsLoginFlag {
 	if true {
@@ -54,12 +55,15 @@ func EjecutarMkgrp(grp_name string) (string, error) {
 		if true {
 
 			// Validacion si el grupo ya existe
-			// Metodo buscarGrupo() pertenece al comando Login.go
-			grp_id := buscarGrupo(grp_name)
-			if grp_id == -1 {
-				newGrp_id := getNewGrp_id()
-				nuevoGrupo := strconv.Itoa(newGrp_id) + ",G," + grp_name + "\n"
-				setToFileUsersTxt(nuevoGrupo)
+			result, err := buscarGrupo(groupName, pathUsersFile, CurrentSession.PartitionId, CurrentSession.Path)
+			if err != nil {
+				return "", fmt.Errorf("Error: %s\n", err)
+			}
+			if result != 1 {
+				newGrp_id, _ := nuevoGrupoId(pathUsersFile, CurrentSession.PartitionId, CurrentSession.Path)
+				nuevoGrupo := strconv.Itoa(newGrp_id) + ",G," + groupName + "\n"
+				fmt.Printf("nuevoGrupo: %s\n", nuevoGrupo)
+				//setToFileUsersTxt(nuevoGrupo)
 				return "", fmt.Errorf("Grupo creado con exito!\n")
 
 			} else {
@@ -75,106 +79,209 @@ func EjecutarMkgrp(grp_name string) (string, error) {
 	}
 }
 
-/*
-Funcion para obtener un nuevo ID para el nuevo grupo
-@return id del ultimo grupo +1
-*/
-func getNewGrp_id() int {
-	// Apertura del archivo del disco binario
-	disco_actual, err := os.OpenFile(CurrentSession.Path, os.O_RDWR, 0660)
-	if err != nil {
-		fmt.Printf("Error: %s\n", err)
-		return 0
-	}
-	defer disco_actual.Close()
-
-	// Estructuras necesarias a utilizar
-	superB := Types.SuperBlock{}
-	inodo := Types.Inode{}
-
-	// Tamaño de algunas estructuras
-	var inodoTable Types.Inode
-	const i_size = unsafe.Sizeof(inodoTable)
-
-	// --------Se extrae el SB del disco---------
-	var sbsize int = int(binary.Size(superB))
-	disco_actual.Seek(int64(CurrentSession.Start_SB), 0)
-	data := leerEnArchivo(disco_actual, sbsize)
-	buffer := bytes.NewBuffer(data)
-	err = binary.Read(buffer, binary.BigEndian, &superB)
-	if err != nil {
-		fmt.Printf("Binary.Read failed: %s\n", err)
-	}
-
-	// --------Se extrae el InodoTable del archivo user.txt---------
-	var inodosize int = int(binary.Size(inodo))
-	disco_actual.Seek(int64(superB.S_inode_start)+int64(i_size), 0)
-	dataI := leerEnArchivo(disco_actual, inodosize)
-	bufferI := bytes.NewBuffer(dataI)
-	err = binary.Read(bufferI, binary.BigEndian, &inodo)
-	if err != nil {
-		fmt.Printf("Binary.Read failed: %s\n", err)
-	}
-
-	// Almacenara lo extraido del archivo
-	contenidoFile := ""
-	id_auxiliar := -1
-
-	// Se recorren los iblock para conocer los punteros
-	for i := 0; i < 15; i++ {
-
-		// El 255 representa al -1
-		if int(inodo.I_block[i]) != 255 {
-			archivo := Types.FileBlock{}
-			disco_actual.Seek(int64(superB.S_block_start), 0)
-
-			for j := 0; j <= int(inodo.I_block[i]); j++ {
-				// --------Se extrae el Bloque Archivo USERS.TXT---------
-				var basize int = int(binary.Size(archivo))
-				data := leerEnArchivo(disco_actual, basize)
-				buff := bytes.NewBuffer(data)
-				err = binary.Read(buff, binary.BigEndian, &archivo)
-				if err != nil {
-					fmt.Printf("Binary.Read failed: %s\n", err)
-				}
-			}
-
-			//Concatenar el contenido de cada bloque perteneciente al archivo users.txt
-			contenidoFile += byteToStr(archivo.B_content[:])
-		}
-	}
-
-	disco_actual.Close()
-
-	var arregloU_G []string = strings.Split(contenidoFile, "\n")
-
-	for _, filaU_G := range arregloU_G {
-
-		// Se verifica que la fila obtenida del contenido no venga vacia
-		if filaU_G != "" {
-			var data []string = strings.Split(filaU_G, ",")
-
-			// Verificar ID que no se un U/G eliminado
-			if strings.Compare(data[0], "0") != 0 {
-
-				// Verificar que sea tipo Grupo
-				if strings.Compare(data[1], "G") == 0 {
-
-					idG, _ := strconv.Atoi(data[0])
-					id_auxiliar = idG
-
-				}
-			}
-		}
-	}
-
-	// Se retorna el ultimo id del tipo Grupo encontrado sumandole 1
-	return id_auxiliar + 1
-}
-
 /* Metodo para agregar un grupo/usuario al archivo users.txt de una particion
  * @param string newData: Datos del nuevo grupo/usuario
  */
+
+func nuevoGrupoId(pathUsersFile string, partitionId string, diskFileName string) (int, error) {
+
+	fileContents, err := ReturnFileContents(pathUsersFile, partitionId, diskFileName)
+	if err != nil {
+		return 0, err
+	}
+
+	var objectType string = ""
+	var objectId int = 0
+
+	for _, filaU_G := range fileContents {
+		cleanString := strings.ReplaceAll(filaU_G, "\x00", "")
+		parts := strings.Split(cleanString, ",")
+		if cleanString != "" && len(parts) > 1 {
+			objectType = strings.TrimSpace(parts[1])
+			if strings.Compare(objectType, "G") == 0 {
+				objectId, _ = strconv.Atoi(strings.TrimSpace(parts[0]))
+			}
+		}
+		// parts := strings.Split(filaU_G, ",")
+		// objectType = strings.TrimSpace(parts[1])
+		// if strings.Compare(objectType, "G") == 0 {
+		// 	objectId, _ = strconv.Atoi(strings.TrimSpace(parts[0]))
+		// }
+	}
+
+	return objectId + 1, nil
+}
+
+func buscarGrupo(groupName string, pathUsersFile string, partitionId string, diskFileName string) (int, error) {
+
+	fileContents, err := ReturnFileContents(pathUsersFile, partitionId, diskFileName)
+	if err != nil {
+		return 0, err
+	}
+
+	var objectType string = ""
+	var name string = ""
+
+	for _, filaU_G := range fileContents {
+		cleanString := strings.ReplaceAll(filaU_G, "\x00", "")
+		parts := strings.Split(cleanString, ",")
+		if cleanString != "" && len(parts) > 1 {
+			objectType = strings.TrimSpace(parts[1])
+			name = strings.TrimSpace(parts[2])
+			if strings.Compare(objectType, "G") == 0 {
+				if strings.Compare(name, groupName) == 0 {
+					return 1, nil
+				}
+			}
+		}
+
+	}
+
+	return 0, nil
+
+	// // Apertura del archivo del disco binario
+	// disco_actual, err := os.OpenFile(Global.SesionActual.Path, os.O_RDWR, 0660)
+	// if err != nil {
+	// 	fmt.Printf("Error: %s\n", err)
+	// }
+	// defer disco_actual.Close()
+
+	// // Estructuras necesarias a utilizar
+	// superB := Types.SuperBlock{}
+	// inodo := Types.Inode{}
+
+	// // Tamaño de algunas estructuras
+	// var inodoTable Types.Inode
+	// const i_size = unsafe.Sizeof(inodoTable)
+
+	// // --------Se extrae el SB del disco---------
+	// var sbsize int = int(binary.Size(superB))
+	// disco_actual.Seek(int64(CurrentSession.PartitionStart), 0)
+	// data := leerEnArchivo(disco_actual, sbsize)
+	// buffer := bytes.NewBuffer(data)
+	// err = binary.Read(buffer, binary.LittleEndian, &superB)
+	// if err != nil {
+	// 	fmt.Printf("Binary.Read failed: %s\n", err)
+	// }
+
+	// // --------Se extrae el InodoTable del archivo user.txt---------
+	// var inodosize int = int(binary.Size(inodo))
+	// disco_actual.Seek(int64(superB.S_inode_start)+int64(i_size), 0)
+	// dataI := leerEnArchivo(disco_actual, inodosize)
+	// bufferI := bytes.NewBuffer(dataI)
+	// err = binary.Read(bufferI, binary.LittleEndian, &inodo)
+	// if err != nil {
+	// 	fmt.Printf("Binary.Read failed: %s\n", err)
+	// }
+
+	// // Almacenara lo extraido del archivo
+	// contenidoFile := ""
+
+	// // Se recorren los iblock para conocer los punteros
+	// for i := 0; i < 15; i++ {
+
+	// 	// El 255 representa al -1
+	// 	if int(inodo.I_block[i]) != 255 {
+	// 		archivo := Types.FileBlock{}
+	// 		disco_actual.Seek(int64(superB.S_block_start), 0)
+
+	// 		for j := 0; j <= int(inodo.I_block[i]); j++ {
+	// 			// --------Se extrae el Bloque Archivo USERS.TXT---------
+	// 			var basize int = int(binary.Size(archivo))
+	// 			data := leerEnArchivo(disco_actual, basize)
+	// 			buff := bytes.NewBuffer(data)
+	// 			err = binary.Read(buff, binary.LittleEndian, &archivo)
+	// 			if err != nil {
+	// 				fmt.Printf("Binary.Read failed: %s\n", err)
+	// 			}
+	// 		}
+
+	// 		//Concatenar el contenido de cada bloque perteneciente al archivo users.txt
+	// 		contenidoFile += byteToStr(archivo.B_content[:])
+	// 	}
+	// }
+
+	// disco_actual.Close()
+
+	// var arregloU_G []string = strings.Split(contenidoFile, "\n")
+
+	// for _, filaU_G := range arregloU_G {
+
+	// 	// Se verifica que la fila obtenida del contenido no venga vacia
+	// 	if filaU_G != "" {
+	// 		var data []string = strings.Split(filaU_G, ",")
+
+	// 		// Verificar ID que no se un U/G eliminado
+	// 		if strings.Compare(data[0], "0") != 0 {
+
+	// 			// Verificar que sea tipo Grupo
+	// 			if strings.Compare(data[1], "G") == 0 {
+	// 				group := data[2]
+	// 				if strings.Compare(group, grp_name) == 0 {
+	// 					idG, _ := strconv.Atoi(data[0])
+	// 					return idG
+	// 				}
+
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+	// return -1
+}
+
+func getc(f *os.File) byte {
+	b := make([]byte, 1)
+	_, err := f.Read(b)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return b[0]
+}
+
+func leerEnArchivo(file *os.File, n int) []byte { //leemos n bytes del DD y lo devolvemos
+	Arraybytes := make([]byte, n)   //molde q contendra lo q leemos
+	_, err := file.Read(Arraybytes) // recogemos la info q nos interesa y la guardamos en el molde
+
+	if err != nil { //si es error lo reportamos
+		fmt.Println(err)
+	}
+	return Arraybytes
+}
+
+func escribirEnArchivo(file *os.File, bytes []byte) { //escribe dentro de un file
+	_, err := file.Write(bytes)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func byteToStr(array []byte) string { //paso de []byte a string (SIRVE EN ESPECIAL PARA OBTENER UN VALOR NUMERICO)
+	contador := 0
+	str := ""
+	for {
+		if contador == len(array) { //significa que termine de recorrel el array
+			break
+		} else {
+			//if array[contador] == uint8(56) { //no hago nada
+			//str += "0"
+			//}
+			if array[contador] == uint8(0) {
+				array[contador] = uint8(0) //asigno \00 (creo) y finalizo
+				break
+			} else if array[contador] != 0 {
+				str += string(array[contador]) //le agrego a mi cadena un valor real
+			}
+		}
+		contador++
+	}
+
+	return str
+}
+
 func setToFileUsersTxt(newData string) {
 	// Apertura del archivo del disco binario
 	disco_actual, err := os.OpenFile(CurrentSession.Path, os.O_RDWR, 0660)
@@ -198,7 +305,7 @@ func setToFileUsersTxt(newData string) {
 
 	// --------Se extrae el SB del disco---------
 	var sbsize int = int(binary.Size(superB))
-	disco_actual.Seek(int64(CurrentSession.Start_SB), 0)
+	disco_actual.Seek(int64(CurrentSession.PartitionStart), 0)
 	data := leerEnArchivo(disco_actual, sbsize)
 	buffer := bytes.NewBuffer(data)
 	err = binary.Read(buffer, binary.BigEndian, &superB)
@@ -370,7 +477,7 @@ func setToFileUsersTxt(newData string) {
 		// Guardamos la nueva cantidad de bloques libres y el primer bloque libre
 		superB.S_first_blo = superB.S_first_blo + 1
 		superB.S_free_blocks_count = superB.S_free_blocks_count - 1
-		disco_actual.Seek(int64(CurrentSession.Start_SB), 0)
+		disco_actual.Seek(int64(CurrentSession.PartitionStart), 0)
 		//Se escribe el superbloque al inicio de la particion
 		s1 := &superB
 		var binario4 bytes.Buffer
@@ -394,7 +501,7 @@ func buscarBit(file *os.File, tipo string, fit string) int {
 	bit_libre := -1
 	tam_bm := 0
 
-	file.Seek(int64(CurrentSession.Start_SB), 0)
+	file.Seek(int64(CurrentSession.PartitionStart), 0)
 	// --------Se extrae el SB del disco---------
 	var sbsize int = int(binary.Size(super))
 	data := leerEnArchivo(file, sbsize)
@@ -567,12 +674,16 @@ func Fputc(c int32, f *os.File) int32 {
 	return int32(n)
 }
 
-func buscarGrupo(grp_name string) int {
-
+/*
+Funcion para obtener un nuevo ID para el nuevo grupo
+@return id del ultimo grupo +1
+*/
+func getNewGrp_id() int {
 	// Apertura del archivo del disco binario
 	disco_actual, err := os.OpenFile(CurrentSession.Path, os.O_RDWR, 0660)
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
+		return 0
 	}
 	defer disco_actual.Close()
 
@@ -586,7 +697,7 @@ func buscarGrupo(grp_name string) int {
 
 	// --------Se extrae el SB del disco---------
 	var sbsize int = int(binary.Size(superB))
-	disco_actual.Seek(int64(CurrentSession.Start_SB), 0)
+	disco_actual.Seek(int64(CurrentSession.PartitionStart), 0)
 	data := leerEnArchivo(disco_actual, sbsize)
 	buffer := bytes.NewBuffer(data)
 	err = binary.Read(buffer, binary.BigEndian, &superB)
@@ -606,6 +717,7 @@ func buscarGrupo(grp_name string) int {
 
 	// Almacenara lo extraido del archivo
 	contenidoFile := ""
+	id_auxiliar := -1
 
 	// Se recorren los iblock para conocer los punteros
 	for i := 0; i < 15; i++ {
@@ -646,68 +758,15 @@ func buscarGrupo(grp_name string) int {
 
 				// Verificar que sea tipo Grupo
 				if strings.Compare(data[1], "G") == 0 {
-					group := data[2]
-					if strings.Compare(group, grp_name) == 0 {
-						idG, _ := strconv.Atoi(data[0])
-						return idG
-					}
+
+					idG, _ := strconv.Atoi(data[0])
+					id_auxiliar = idG
 
 				}
 			}
 		}
 	}
 
-	return -1
-}
-
-func getc(f *os.File) byte {
-	b := make([]byte, 1)
-	_, err := f.Read(b)
-
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	return b[0]
-}
-
-func leerEnArchivo(file *os.File, n int) []byte { //leemos n bytes del DD y lo devolvemos
-	Arraybytes := make([]byte, n)   //molde q contendra lo q leemos
-	_, err := file.Read(Arraybytes) // recogemos la info q nos interesa y la guardamos en el molde
-
-	if err != nil { //si es error lo reportamos
-		fmt.Println(err)
-	}
-	return Arraybytes
-}
-
-func escribirEnArchivo(file *os.File, bytes []byte) { //escribe dentro de un file
-	_, err := file.Write(bytes)
-
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
-func byteToStr(array []byte) string { //paso de []byte a string (SIRVE EN ESPECIAL PARA OBTENER UN VALOR NUMERICO)
-	contador := 0
-	str := ""
-	for {
-		if contador == len(array) { //significa que termine de recorrel el array
-			break
-		} else {
-			//if array[contador] == uint8(56) { //no hago nada
-			//str += "0"
-			//}
-			if array[contador] == uint8(0) {
-				array[contador] = uint8(0) //asigno \00 (creo) y finalizo
-				break
-			} else if array[contador] != 0 {
-				str += string(array[contador]) //le agrego a mi cadena un valor real
-			}
-		}
-		contador++
-	}
-
-	return str
+	// Se retorna el ultimo id del tipo Grupo encontrado sumandole 1
+	return id_auxiliar + 1
 }

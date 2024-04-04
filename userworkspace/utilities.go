@@ -1,4 +1,4 @@
-package UserWorkspace
+package userworkspace
 
 import (
 	"encoding/binary"

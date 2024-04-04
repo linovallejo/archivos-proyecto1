@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	Mkgrp "proyecto1/UserWorkspace"
 	Fdisk "proyecto1/commands/fdisk"
 	Mkdisk "proyecto1/commands/mkdisk"
 	Mkfs "proyecto1/commands/mkfs"
@@ -17,6 +16,7 @@ import (
 	Reportes "proyecto1/reportes"
 	UserWorkspace "proyecto1/userworkspace"
 	Utils "proyecto1/utils"
+	"runtime"
 	"strings"
 )
 
@@ -25,13 +25,23 @@ var rutaDiscos string = "./disks/MIA/P1/"
 var archivoBinarioDiscoActual string = ""
 var ajusteParticionActual string = "" // first fit, best fit, worst fit
 
-var CurrentSession UserWorkspace.Sesion
+// var CurrentSession UserWorkspace.Sesion
 var IsLoginFlag bool = false
+
+var CurrentSession Global.Sesion
+var PathUsersFile string = ""
 
 func main() {
 	Utils.LimpiarConsola()
 	Utils.PrintCopyright()
 	fmt.Println("Sistema de Archivos ext2/ext3 - Proyecto 1")
+
+	if runtime.GOOS == "windows" {
+		PathUsersFile = ".\\users.txt"
+	} else {
+		PathUsersFile = "./users.txt"
+		// PathUsersFile = filepath.Join("/home", "lino", "users.txt")
+	}
 
 	var input string
 	scanner := bufio.NewScanner(os.Stdin)
@@ -895,12 +905,47 @@ func login(params []string) {
 // }
 
 func mkgrp(params []string) {
-	name, err := Mkgrp.ExtractMkgrpParams(params)
+	name, err := UserWorkspace.ExtractMkgrpParams(params)
 	if err != nil {
-		fmt.Println("Error al procesar los parámetros MKFS:", err)
+		fmt.Println(err)
+		return
 	}
 
-	_, err = UserWorkspace.EjecutarMkgrp(name)
+	// fmt.Printf("Global.SesionActual in mkgrp: %v\n", Global.SesionActual)
+
+	// name, err := UserWorkspace.ExtractMkgrpParams(params)
+	// if err != nil {
+	// 	fmt.Println("Error al procesar los parámetros MKFS:", err)
+	// }
+
+	// filename := "A.dsk"
+	// //fmt.Println("filename in rep:", filename)
+
+	// archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// }
+
+	// _, err = UserWorkspace.EjecutarMkgrp(name)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// } else {
+	// 	fmt.Println("mkgrp exitoso")
+	// }
+
+	// var filePath string = ".\\users.txt"
+	// var partitionId string = "A123"
+
+	// fileContents, err := UserWorkspace.ReturnFileContents(filePath, partitionId, archivoBinarioDisco)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// } else {
+	// 	fmt.Println("fileContents:", fileContents)
+	// }
+
+	_, err = UserWorkspace.EjecutarMkgrp(name, PathUsersFile, Global.SesionActual)
 	if err != nil {
 		fmt.Println(err)
 	} else {
