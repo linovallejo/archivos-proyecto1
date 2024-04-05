@@ -46,4 +46,9 @@ mkdisk -param=x #ERR
 rep -id=A123 -path=".\reportes\reporte5_inode.jpg" -name=inode
 
 #CREACION DE GRUPOS
-mkgrp -name=usuarios
+#mkgrp -name=usuarios
+cat -file=\users.txt
+#cat -file=/users.txt
+
+logout
+logout #ERR NO HAY SESION INICIADA

@@ -125,6 +125,34 @@ func GetInodeFileDataOriginal(Inode Types.Inode, file *os.File, tempSuperblock T
 	return content
 }
 
+func GetFileBlockDataOriginal(Inode Types.Inode, file *os.File, tempSuperblock Types.SuperBlock) *Types.FileBlock {
+	index := int32(0)
+	// define content as a string
+
+	// Iterate over i_blocks from Inode
+	for _, block := range Inode.I_block {
+		if block != -1 {
+			if index < 13 {
+				//CASO DIRECTO
+
+				var crrFileBlock Types.FileBlock
+				// Read object from bin file
+				if err := Utilities.ReadObject(file, &crrFileBlock, int64(tempSuperblock.S_block_start+block*int32(binary.Size(Types.FileBlock{})))); err == nil {
+					return &crrFileBlock
+				} else {
+					fmt.Printf("Error: %s\n", err)
+				}
+
+			} else {
+				//CASO INDIRECTO
+			}
+		}
+		index++
+	}
+
+	return nil
+}
+
 func ReturnFileContents(pathUsersFile string, partitionId string, diskFileName string) ([]string, error) {
 	var fileContents []string = []string{}
 

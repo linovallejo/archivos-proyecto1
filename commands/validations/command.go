@@ -56,6 +56,10 @@ var commandParams = map[string]map[string]CommandParamDetails{
 	"mkgrp": {
 		"name": {IsMandatory: true},
 	},
+	"cat": {
+		"file": {IsMandatory: true},
+	},
+	"logout": {},
 }
 
 func ValidarParametros(commandLine string) error {
@@ -64,7 +68,7 @@ func ValidarParametros(commandLine string) error {
 		commandLine = commandLine[:hashIndex]
 	}
 	parts := strings.Fields(commandLine)
-	if strings.ToLower(parts[0]) != "pause" {
+	if strings.ToLower(parts[0]) != "pause" && strings.ToLower(parts[0]) != "logout" {
 		if len(parts) < 2 {
 			return errors.New("formato de comando invalido")
 		}
@@ -104,12 +108,10 @@ func ValidarParametros(commandLine string) error {
 }
 
 var CommandsNotImplemented = []string{
-	"logout",
 	"rmgrp",
 	"mkusr",
 	"rmusr",
 	"mkfile",
-	"cat",
 	"remove",
 	"edit",
 	"rename",

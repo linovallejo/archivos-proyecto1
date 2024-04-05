@@ -202,6 +202,11 @@ func main() {
 				case strings.HasPrefix(commandLower, "mkgrp"):
 					params := strings.Fields(command)
 					mkgrp(params[1:])
+				case strings.HasPrefix(commandLower, "cat"):
+					params := strings.Fields(command)
+					cat(params[1:])
+				case strings.HasPrefix(commandLower, "logout"):
+					logout()
 				}
 			}
 
@@ -895,14 +900,17 @@ func login(params []string) {
 	}
 }
 
-// func logout() {
-// 	err := UserWorkspace.Logout()
-// 	if err != nil {
-// 		fmt.Println(err)
-// 	} else {
-// 		fmt.Println("Logout exitoso")
-// 	}
-// }
+func logout() {
+	if Global.Usuario.Status == false {
+		fmt.Println("No hay ninguna sesión activa")
+		return
+	}
+	Global.Usuario.Status = false
+	Global.Usuario.Id = ""
+	Global.SesionActual = Global.Sesion{}
+
+	fmt.Println("Logout exitoso")
+}
 
 func mkgrp(params []string) {
 	name, err := UserWorkspace.ExtractMkgrpParams(params)
@@ -951,4 +959,22 @@ func mkgrp(params []string) {
 	} else {
 		fmt.Println("mkgrp exitoso")
 	}
+}
+
+func cat(params []string) {
+	file, err := UserWorkspace.ExtractCatParams(params)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	var fileContents []string = []string{}
+	fileContents, err = UserWorkspace.EjecutarCat(file, Global.SesionActual.PartitionId, Global.SesionActual.Path)
+
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("Contenido del archivo:\n", fileContents)
+	}
+
 }

@@ -43,7 +43,7 @@ mkgrp -name=mail
 mkgrp -name=news
 mkgrp -name=sys
 mkgrp -name=sys #ERR YA EXISTE EL GRUPO
-cat -file=/user.txt
+cat -file=/users.txt
 
 pause
 mkdisk -param=x #ERR
