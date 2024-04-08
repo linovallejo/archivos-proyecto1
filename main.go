@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 	"path/filepath"
 	Fdisk "proyecto1/commands/fdisk"
 	Mkdisk "proyecto1/commands/mkdisk"
@@ -11,13 +9,14 @@ import (
 	Mount "proyecto1/commands/mount"
 	Rep "proyecto1/commands/rep"
 	Rmdisk "proyecto1/commands/rmdisk"
-	Command "proyecto1/commands/validations"
 	Global "proyecto1/global"
 	Reportes "proyecto1/reportes"
 	UserWorkspace "proyecto1/userworkspace"
 	Utils "proyecto1/utils"
-	"runtime"
 	"strings"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 var rutaDiscos string = "./disks/MIA/P1/"
@@ -32,188 +31,196 @@ var CurrentSession Global.Sesion
 var PathUsersFile string = ""
 
 func main() {
-	Utils.LimpiarConsola()
-	Utils.PrintCopyright()
-	fmt.Println("Sistema de Archivos ext2/ext3 - Proyecto 1")
+	app := fiber.New()
+	app.Use(cors.New())
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("Hello, World!")
+	})
 
-	if runtime.GOOS == "windows" {
-		PathUsersFile = ".\\users.txt"
-	} else {
-		PathUsersFile = "./users.txt"
-		// PathUsersFile = filepath.Join("/home", "lino", "users.txt")
-	}
+	app.Listen(":4000")
 
-	var input string
-	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Println("Ingrese el comando:")
-	scanner.Scan()
-	input = scanner.Text()
+	// Utils.LimpiarConsola()
+	// Utils.PrintCopyright()
+	// fmt.Println("Sistema de Archivos ext2/ext3 - Proyecto 1")
 
-	comando, path := parseCommand(input)
-	if comando != "execute" || path == "" {
-		fmt.Println("Comando no reconocido o ruta de archivo faltante. Uso: execute <ruta_al_archivo_de_scripts>")
-		return
-	}
+	// if runtime.GOOS == "windows" {
+	// 	PathUsersFile = ".\\users.txt"
+	// } else {
+	// 	PathUsersFile = "./users.txt"
+	// 	// PathUsersFile = filepath.Join("/home", "lino", "users.txt")
+	// }
 
-	path = strings.Trim(path, `"'`)
+	// var input string
+	// scanner := bufio.NewScanner(os.Stdin)
+	// fmt.Println("Ingrese el comando:")
+	// scanner.Scan()
+	// input = scanner.Text()
 
-	fmt.Printf("Leyendo el archivo de scripts de: %s\n", path)
+	// comando, path := parseCommand(input)
+	// if comando != "execute" || path == "" {
+	// 	fmt.Println("Comando no reconocido o ruta de archivo faltante. Uso: execute <ruta_al_archivo_de_scripts>")
+	// 	return
+	// }
 
-	content, err := os.ReadFile(path)
-	if err != nil {
-		fmt.Printf("Error leyendo el archivo de scripts: %v\n", err)
-		return
-	}
+	// path = strings.Trim(path, `"'`)
 
-	contentStr := string(content)
-	contentStr = strings.Replace(contentStr, "\r\n", "\n", -1) // Convertir CRLF a LF
-	commands := strings.Split(contentStr, "\n")
+	// fmt.Printf("Leyendo el archivo de scripts de: %s\n", path)
 
-	for _, command := range commands {
-		command = strings.TrimSpace(command)
-		if command != "" {
-			fmt.Println("_______________________________________________________")
-			fmt.Println("Procesando comando: ", command)
-		}
-		if command == "" || strings.HasPrefix(command, "#") {
-			continue
-		}
+	// content, err := os.ReadFile(path)
+	// if err != nil {
+	// 	fmt.Printf("Error leyendo el archivo de scripts: %v\n", err)
+	// 	return
+	// }
 
-		var commandLower string = strings.ToLower(command)
+	// contentStr := string(content)
+	// contentStr = strings.Replace(contentStr, "\r\n", "\n", -1) // Convertir CRLF a LF
+	// commands := strings.Split(contentStr, "\n")
 
-		err = Command.ValidarComando(commandLower)
-		if err != nil {
-			fmt.Println(err)
-		} else {
-			err = Command.ValidarParametros(commandLower)
-			if err != nil {
-				fmt.Println(err)
-			} else {
+	// for _, command := range commands {
+	// 	command = strings.TrimSpace(command)
+	// 	if command != "" {
+	// 		fmt.Println("_______________________________________________________")
+	// 		fmt.Println("Procesando comando: ", command)
+	// 	}
+	// 	if command == "" || strings.HasPrefix(command, "#") {
+	// 		continue
+	// 	}
 
-				switch {
-				case strings.HasPrefix(commandLower, "mkdisk"):
-					params := strings.Fields(command)
-					archivoBinarioDiscoActual = mkdisk(params[1:])
+	// 	var commandLower string = strings.ToLower(command)
 
-					// fmt.Println("despues del mkdisk")
-					// var TempMBR2 *Types.MBR
-					// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					// if err != nil {
-					// 	fmt.Println("Error leyendo el MBR:", err)
-					// 	return
-					// }
+	// 	err = Command.ValidarComando(commandLower)
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 	} else {
+	// 		err = Command.ValidarParametros(commandLower)
+	// 		if err != nil {
+	// 			fmt.Println(err)
+	// 		} else {
 
-					// Utils.PrintMBRv3(TempMBR2)
-				case strings.HasPrefix(commandLower, "fdisk"):
-					params := strings.Fields(command)
+	// 			switch {
+	// 			case strings.HasPrefix(commandLower, "mkdisk"):
+	// 				params := strings.Fields(command)
+	// 				archivoBinarioDiscoActual = mkdisk(params[1:])
 
-					// fmt.Println("antes del fdisk")
-					// var TempMBR2 *Types.MBR
-					// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					// if err != nil {
-					// 	fmt.Println("Error leyendo el MBR:", err)
-					// 	return
-					// }
-					// Utils.PrintMBRv3(TempMBR2)
+	// 				// fmt.Println("despues del mkdisk")
+	// 				// var TempMBR2 *Types.MBR
+	// 				// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+	// 				// if err != nil {
+	// 				// 	fmt.Println("Error leyendo el MBR:", err)
+	// 				// 	return
+	// 				// }
 
-					fdisk(params[1:])
+	// 				// Utils.PrintMBRv3(TempMBR2)
+	// 			case strings.HasPrefix(commandLower, "fdisk"):
+	// 				params := strings.Fields(command)
 
-					// fmt.Println("despues del fdisk")
-					// var TempMBR3 *Types.MBR
-					// TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					// if err != nil {
-					// 	fmt.Println("Error leyendo el MBR:", err)
-					// 	return
-					// }
-					// Utils.PrintMBRv3(TempMBR3)
+	// 				// fmt.Println("antes del fdisk")
+	// 				// var TempMBR2 *Types.MBR
+	// 				// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+	// 				// if err != nil {
+	// 				// 	fmt.Println("Error leyendo el MBR:", err)
+	// 				// 	return
+	// 				// }
+	// 				// Utils.PrintMBRv3(TempMBR2)
 
-					// logicalPartitions, _ := Fdisk.GetLogicalPartition(archivoBinarioDiscoActual)
-					// Fdisk.PrintLogicalPartitions(logicalPartitions)
+	// 				fdisk(params[1:])
 
-				case strings.HasPrefix(commandLower, "rmdisk"):
-					// fmt.Println("¿Está seguro de que desea eliminar el disco? [s/N]:")
-					// var response string
-					// _, err := fmt.Scanln(&response)
-					// if err != nil || (response != "s" && response != "S") {
-					// 	fmt.Println("Operación de eliminación cancelada.")
-					// 	return
-					// }
+	// 				// fmt.Println("despues del fdisk")
+	// 				// var TempMBR3 *Types.MBR
+	// 				// TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+	// 				// if err != nil {
+	// 				// 	fmt.Println("Error leyendo el MBR:", err)
+	// 				// 	return
+	// 				// }
+	// 				// Utils.PrintMBRv3(TempMBR3)
 
-					params := strings.Fields(command)
-					rmdisk(params[1:])
-				case strings.HasPrefix(commandLower, "mount"):
-					params := strings.Fields(command)
+	// 				// logicalPartitions, _ := Fdisk.GetLogicalPartition(archivoBinarioDiscoActual)
+	// 				// Fdisk.PrintLogicalPartitions(logicalPartitions)
 
-					// fmt.Println("antes del mount")
-					// var TempMBR2 *Types.MBR
-					// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					// if err != nil {
-					// 	fmt.Println("Error leyendo el MBR:", err)
-					// 	return
-					// }
-					// Utils.PrintMBRv3(TempMBR2)
+	// 			case strings.HasPrefix(commandLower, "rmdisk"):
+	// 				// fmt.Println("¿Está seguro de que desea eliminar el disco? [s/N]:")
+	// 				// var response string
+	// 				// _, err := fmt.Scanln(&response)
+	// 				// if err != nil || (response != "s" && response != "S") {
+	// 				// 	fmt.Println("Operación de eliminación cancelada.")
+	// 				// 	return
+	// 				// }
 
-					mount(params[1:])
+	// 				params := strings.Fields(command)
+	// 				rmdisk(params[1:])
+	// 			case strings.HasPrefix(commandLower, "mount"):
+	// 				params := strings.Fields(command)
 
-					// fmt.Println("despues del mount")
-					// var TempMBR3 *Types.MBR
-					// TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					// if err != nil {
-					// 	fmt.Println("Error leyendo el MBR:", err)
-					// 	return
-					// }
-					// Utils.PrintMBRv3(TempMBR3)
-				case strings.HasPrefix(commandLower, "unmount"):
-					params := strings.Fields(command)
-					unmount(params[1:])
-				case strings.HasPrefix(commandLower, "rep"):
-					params := strings.Fields(command)
-					rep(params[1:])
-				case strings.HasPrefix(commandLower, "pause"):
-					fmt.Println("Presione cualquier tecla para continuar...")
-					fmt.Scanln()
-				case strings.HasPrefix(commandLower, "login"):
-					params := strings.Fields(command)
-					login(params[1:])
-				// case strings.HasPrefix(commandLower, "logout"):
-				// 	logout()
-				case strings.HasPrefix(commandLower, "mkfs"):
-					params := strings.Fields(command)
+	// 				// fmt.Println("antes del mount")
+	// 				// var TempMBR2 *Types.MBR
+	// 				// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+	// 				// if err != nil {
+	// 				// 	fmt.Println("Error leyendo el MBR:", err)
+	// 				// 	return
+	// 				// }
+	// 				// Utils.PrintMBRv3(TempMBR2)
 
-					// fmt.Println("antes del mkfs")
-					// var TempMBR2 *Types.MBR
-					// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					// if err != nil {
-					// 	fmt.Println("Error leyendo el MBR:", err)
-					// 	return
-					// }
-					// Utils.PrintMBRv3(TempMBR2)
+	// 				mount(params[1:])
 
-					mkfs(params[1:])
+	// 				// fmt.Println("despues del mount")
+	// 				// var TempMBR3 *Types.MBR
+	// 				// TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+	// 				// if err != nil {
+	// 				// 	fmt.Println("Error leyendo el MBR:", err)
+	// 				// 	return
+	// 				// }
+	// 				// Utils.PrintMBRv3(TempMBR3)
+	// 			case strings.HasPrefix(commandLower, "unmount"):
+	// 				params := strings.Fields(command)
+	// 				unmount(params[1:])
+	// 			case strings.HasPrefix(commandLower, "rep"):
+	// 				params := strings.Fields(command)
+	// 				rep(params[1:])
+	// 			case strings.HasPrefix(commandLower, "pause"):
+	// 				fmt.Println("Presione cualquier tecla para continuar...")
+	// 				fmt.Scanln()
+	// 			case strings.HasPrefix(commandLower, "login"):
+	// 				params := strings.Fields(command)
+	// 				login(params[1:])
+	// 			// case strings.HasPrefix(commandLower, "logout"):
+	// 			// 	logout()
+	// 			case strings.HasPrefix(commandLower, "mkfs"):
+	// 				params := strings.Fields(command)
 
-					// fmt.Println("despues del mkfs")
-					// var TempMBR3 *Types.MBR
-					// TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					// if err != nil {
-					// 	fmt.Println("Error leyendo el MBR:", err)
-					// 	return
-					// }
-					// Utils.PrintMBRv3(TempMBR3)
-				case strings.HasPrefix(commandLower, "mkgrp"):
-					params := strings.Fields(command)
-					mkgrp(params[1:])
-				case strings.HasPrefix(commandLower, "cat"):
-					params := strings.Fields(command)
-					cat(params[1:])
-				case strings.HasPrefix(commandLower, "logout"):
-					logout()
-				}
-			}
+	// 				// fmt.Println("antes del mkfs")
+	// 				// var TempMBR2 *Types.MBR
+	// 				// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+	// 				// if err != nil {
+	// 				// 	fmt.Println("Error leyendo el MBR:", err)
+	// 				// 	return
+	// 				// }
+	// 				// Utils.PrintMBRv3(TempMBR2)
 
-		}
+	// 				mkfs(params[1:])
 
-	}
-	//Rmdisk.RemoveDisk(archivoBinarioDiscoActual)
+	// 				// fmt.Println("despues del mkfs")
+	// 				// var TempMBR3 *Types.MBR
+	// 				// TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
+	// 				// if err != nil {
+	// 				// 	fmt.Println("Error leyendo el MBR:", err)
+	// 				// 	return
+	// 				// }
+	// 				// Utils.PrintMBRv3(TempMBR3)
+	// 			case strings.HasPrefix(commandLower, "mkgrp"):
+	// 				params := strings.Fields(command)
+	// 				mkgrp(params[1:])
+	// 			case strings.HasPrefix(commandLower, "cat"):
+	// 				params := strings.Fields(command)
+	// 				cat(params[1:])
+	// 			case strings.HasPrefix(commandLower, "logout"):
+	// 				logout()
+	// 			}
+	// 		}
+
+	// 	}
+
+	// }
+
 }
 
 func parseCommand(input string) (string, string) {
