@@ -35,7 +35,7 @@ rep -id=A123 -path=".\reportes\reporte1_tree.jpg" -name=tree
 pause
 mkdisk -param=x #ERR
 
-login -user=root -pass=555 -id=A123
+login -user=root -pass=123 -id=A123
 
 login -user=root -pass=123 -id=A123 #ERR SESION INICIADA
 

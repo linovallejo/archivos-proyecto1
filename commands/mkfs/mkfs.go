@@ -395,7 +395,7 @@ func create_ext2(inodesCount int32, partition Types.Partition, newSuperblock Typ
 
 	//Inode 1
 	// Contenido de users.txt
-	data := "1,G,root\n1,U,root,root,555\n"
+	data := "1,G,root\n1,U,root,root,123\n"
 	//content_size := int32(len(data))
 
 	var Inode1 Types.Inode

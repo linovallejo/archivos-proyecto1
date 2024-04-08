@@ -298,7 +298,7 @@ func createPartition(mbr *Types.MBR, start int64, size int32, unit string, typeP
 				currentEBR = currentEBR.PartNext
 			}
 
-			fmt.Println("totalLogicalPartitionsSize:", totalLogicalPartitionsSize)
+			//fmt.Println("totalLogicalPartitionsSize:", totalLogicalPartitionsSize)
 			totalLogicalPartitionsSize += sizeInBytes
 
 			if totalLogicalPartitionsSize > sizeInBytesExtended {
@@ -752,10 +752,10 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) (string, error) {
 					var espacioTotalLogicalPartitions int32 = 0
 					for currentEBR != nil {
 						// Print details of the logical partition
-						fmt.Printf("Partition %d:\n", partitionNumber)
-						fmt.Printf("  Name: %s\n", currentEBR.PartName[:])
-						fmt.Printf("  Start: %d\n", currentEBR.PartStart)
-						fmt.Printf("  Size: %d\n", currentEBR.PartSize)
+						// fmt.Printf("Partition %d:\n", partitionNumber)
+						// fmt.Printf("  Name: %s\n", currentEBR.PartName[:])
+						// fmt.Printf("  Start: %d\n", currentEBR.PartStart)
+						// fmt.Printf("  Size: %d\n", currentEBR.PartSize)
 
 						dotLogicalPartitions.WriteString("<td>EBR</td>\n")
 						partitionName = Utils.CleanPartitionName(currentEBR.PartName[:])
@@ -767,9 +767,9 @@ func GenerateDotCodeDisk(mbr *Types.MBR, diskFileName string) (string, error) {
 						currentEBR = currentEBR.PartNext
 						partitionNumber++
 					}
-					fmt.Println("Espacio total:", espacioTotalLogicalPartitions)
+					//fmt.Println("Espacio total:", espacioTotalLogicalPartitions)
 					espacioOcupadoExtendida = partition.Size
-					fmt.Println("Extendida:", espacioOcupadoExtendida)
+					//fmt.Println("Extendida:", espacioOcupadoExtendida)
 					var colSpan int = 0
 					colSpan = partitionNumber * 2
 					if (espacioOcupadoExtendida - espacioTotalLogicalPartitions) > 0 {
@@ -1051,7 +1051,7 @@ func AdjustPartitionSize(mbr *Types.MBR, partitionName string, addValue int64, u
 	// Conversión del valor add según la unidad
 	var sizeInBytes int64 = convertUnitToAddValue(addValue, unit)
 
-	fmt.Println("Espacio a ajustar:", sizeInBytes)
+	//fmt.Println("Espacio a ajustar:", sizeInBytes)
 	// fmt.Println("Partición:", partitionName)
 
 	// partitionIndex, _ := findPartitionByName(mbr, partitionName)
@@ -1061,14 +1061,14 @@ func AdjustPartitionSize(mbr *Types.MBR, partitionName string, addValue int64, u
 
 	var partitionIndex int64 = -1
 
-	fmt.Printf("PartitionName parameter: %s\n", partitionName)
+	//fmt.Printf("PartitionName parameter: %s\n", partitionName)
 	for i, partition := range mbr.Partitions {
 		// Asume que el nombre de la partición se almacena en un array de bytes y necesita ser convertido a string
-		fmt.Printf("Partition: %+v\n", partition)
-		fmt.Printf("PartitionName: %s\n", string(partition.Name[:]))
+		//fmt.Printf("Partition: %+v\n", partition)
+		//fmt.Printf("PartitionName: %s\n", string(partition.Name[:]))
 		if Utils.CleanPartitionName(partition.Name[:]) == strings.TrimSpace(partitionName) {
 			partitionIndex = int64(i)
-			fmt.Printf("PartitionIndex: %d\n", partitionIndex)
+			//fmt.Printf("PartitionIndex: %d\n", partitionIndex)
 			break
 		}
 	}
@@ -1090,13 +1090,13 @@ func AdjustPartitionSize(mbr *Types.MBR, partitionName string, addValue int64, u
 
 	// Ajusta el tamaño de la partición
 	var partitionSize int32 = int32(mbr.Partitions[partitionIndex].Size)
-	fmt.Println("size before adjustment:", partitionSize)
+	//fmt.Println("size before adjustment:", partitionSize)
 	if sizeInBytes < 0 {
 		partitionSize = partitionSize - int32(math.Abs(float64(sizeInBytes)))
 	} else {
 		partitionSize = partitionSize + int32(sizeInBytes)
 	}
-	fmt.Println("size after adjustment:", partitionSize)
+	//fmt.Println("size after adjustment:", partitionSize)
 	mbr.Partitions[partitionIndex].Size = partitionSize
 
 	WriteMBR(diskFileName, *mbr)

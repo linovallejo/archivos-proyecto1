@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -20,30 +21,46 @@ func CrearArchivo(nombre_archivo string) {
 	}
 }
 
-func EscribirArchivo(contenido string, nombre_archivo string) {
-	var file, err = os.OpenFile(nombre_archivo, os.O_RDWR, 0644)
+func EscribirArchivo(contenido string, nombre_archivo string) error {
+	// Ensure necessary directories exist
+	dir := filepath.Dir(nombre_archivo)
+
+	err := os.MkdirAll(dir, 0755) // More permissive for directory creation
 	if err != nil {
-		return
+		return fmt.Errorf("error creating directory: %w", err)
+	}
+
+	file, err := os.OpenFile(nombre_archivo, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return fmt.Errorf("error opening file: %w", err)
 	}
 	defer file.Close()
+
 	_, err = file.WriteString(contenido)
 	if err != nil {
-		return
+		return fmt.Errorf("error writing to file: %w", err)
 	}
 	err = file.Sync()
 	if err != nil {
-		return
+		return fmt.Errorf("error syncing file: %w", err)
 	}
-}
 
-func Ejecutar(nombre_imagen string, archivo string, extension string) {
-	var newExtension string = strings.TrimPrefix(extension, ".")
-	path, _ := exec.LookPath("dot")
-	var fileFormat string = "-T" + newExtension
-	cmd, _ := exec.Command(path, fileFormat, archivo).Output()
-	mode := 0777
-	_ = os.WriteFile(nombre_imagen, cmd, os.FileMode(mode))
-	//dot ejemplo.dot -Tpdf ejemplo.pdf -o
+	return nil
+}
+func Ejecutar(nombre_imagen string, archivo string, extension string) error {
+	newExtension := strings.TrimPrefix(extension, ".")
+	path, err := exec.LookPath("dot")
+	if err != nil {
+		return fmt.Errorf("error finding 'dot' executable: %w", err)
+	}
+
+	fileFormat := "-T" + newExtension
+	cmd := exec.Command(path, fileFormat, archivo, "-o", nombre_imagen)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("error executing 'dot' command: %w", err)
+	}
+
+	return nil
 }
 
 func VerReporte(nombre_imagen string) {

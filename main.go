@@ -599,7 +599,7 @@ func rep(params []string) {
 
 	driveletter := string(id[0])
 	filename := driveletter + ".dsk"
-	//fmt.Println("filename in rep:", filename)
+	fmt.Println("filename in rep:", filename)
 
 	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
 	if err != nil {
@@ -771,7 +771,7 @@ func rep(params []string) {
 			return
 		}
 
-		fmt.Println("Superblock in rep:", superblock)
+		//fmt.Println("Superblock in rep:", superblock)
 
 		dotCode, err = Mkfs.GraficarSB(&superblock)
 
