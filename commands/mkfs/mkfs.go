@@ -1085,3 +1085,37 @@ func permByteToString(perm byte) string {
 	}
 	return permStr.String()
 }
+
+func GetMountedPartitionsByDisk(diskFileName string) ([]Types.DiskPartitionDto, error) {
+	var diskPartitions []Types.DiskPartitionDto = make([]Types.DiskPartitionDto, 0)
+	var err error
+	var TempMBR *Types.MBR
+
+	TempMBR, err = Fdisk.ReadMBR(diskFileName)
+	if err != nil {
+		//fmt.Println("Error leyendo el MBR:", err)
+		return diskPartitions, err
+	}
+
+	// Iterate over the partitions
+	for i := 0; i < 4; i++ {
+		if TempMBR.Partitions[i].Size != 0 {
+			// fmt.Println("Partition id:", string(TempMBR.Partitions[i].Id[:]))
+			// fmt.Println("Partition name:", Utils.CleanPartitionName(TempMBR.Partitions[i].Name[:]))
+			// fmt.Println("Partition start:", TempMBR.Partitions[i].Start)
+			// fmt.Println("Partition status:", string(TempMBR.Partitions[i].Status[:]))
+			if TempMBR.Partitions[i].Status[0] == 1 {
+				diskPartitions = append(diskPartitions, Types.DiskPartitionDto{
+					Type:  string(TempMBR.Partitions[i].Type[0]),
+					Start: TempMBR.Partitions[i].Start,
+					Name:  Utils.CleanPartitionName(TempMBR.Partitions[i].Name[:]),
+					Id:    string(TempMBR.Partitions[i].Id[:]),
+				})
+				//fmt.Println("Partition is mounted")
+			}
+		}
+	}
+
+	return diskPartitions, nil
+
+}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	Fdisk "proyecto1/commands/fdisk"
 	Mkdisk "proyecto1/commands/mkdisk"
@@ -12,6 +13,7 @@ import (
 	Command "proyecto1/commands/validations"
 	Global "proyecto1/global"
 	Reportes "proyecto1/reportes"
+	Types "proyecto1/types"
 	UserWorkspace "proyecto1/userworkspace"
 	Utils "proyecto1/utils"
 	"strings"
@@ -56,6 +58,10 @@ func main() {
 		result := executeCommand(cmdReq.Command)
 		return c.SendString(result)
 	})
+
+	app.Get("/list-disks", listDisksHandler)
+
+	app.Get("/list-mounted-partitions-by-disk/:diskFileName", listMountedPartitionsByDiskHandler)
 
 	app.Listen(":4000")
 }
@@ -897,4 +903,49 @@ func cat(params []string) {
 		fmt.Println("Contenido del archivo:\n", fileContents)
 	}
 
+}
+
+func listDisksHandler(c *fiber.Ctx) error {
+	disks, err := getDiskFiles(rutaDiscos)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to read directory")
+	}
+	return c.JSON(disks)
+
+}
+
+func getDiskFiles(directoryPath string) ([]string, error) {
+	files, err := os.ReadDir(directoryPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var disks []string
+	for _, file := range files {
+		info, err := file.Info()
+		if err != nil {
+			continue // or handle the error in a way that fits your requirements
+		}
+		if strings.HasSuffix(file.Name(), ".dsk") && !info.IsDir() {
+			disks = append(disks, file.Name())
+		}
+	}
+	return disks, nil
+}
+
+func listMountedPartitionsByDiskHandler(c *fiber.Ctx) error {
+	partitions, err := getMountedPartitionsHandler(c.Params("diskFileName"))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to get mounted partitions")
+	}
+	return c.JSON(partitions)
+}
+
+func getMountedPartitionsHandler(diskFileName string) ([]Types.DiskPartitionDto, error) {
+	var diskFileNameFullPath string = rutaDiscos + diskFileName
+	partitions, err := Mkfs.GetMountedPartitionsByDisk(diskFileNameFullPath)
+	if err != nil {
+		return nil, err
+	}
+	return partitions, nil
 }
