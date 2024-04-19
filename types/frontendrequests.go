@@ -6,3 +6,9 @@ type DiskPartitionDto struct {
 	Name  string
 	Id    string
 }
+
+type LoginRequestDto struct {
+	Username    string
+	Password    string
+	PartitionId string
+}

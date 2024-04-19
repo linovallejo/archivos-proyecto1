@@ -63,6 +63,8 @@ func main() {
 
 	app.Get("/list-mounted-partitions-by-disk/:diskFileName", listMountedPartitionsByDiskHandler)
 
+	app.Post("/login", loginHandler)
+
 	app.Listen(":4000")
 }
 
@@ -948,4 +950,47 @@ func getMountedPartitionsHandler(diskFileName string) ([]Types.DiskPartitionDto,
 		return nil, err
 	}
 	return partitions, nil
+}
+
+func loginHandler(c *fiber.Ctx) error {
+	var loginRequest Types.LoginRequestDto
+	if err := c.BodyParser(&loginRequest); err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Error parsing request")
+	}
+	if loginRequest.Username == "" || loginRequest.Password == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Username and password are required")
+	}
+	err := executeLogin(loginRequest.Username, loginRequest.Password, loginRequest.PartitionId)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Error logging in")
+	}
+	return c.SendString("Login successful")
+}
+
+func executeLogin(user string, pass string, partitionId string) error {
+
+	driveletter := string(partitionId[0])
+	filename := driveletter + ".dsk"
+	//fmt.Println("filename in rep:", filename)
+
+	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	err = UserWorkspace.Login(user, pass, partitionId, archivoBinarioDisco)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	} else {
+		if Global.Usuario.Status {
+			IsLoginFlag = true
+			fmt.Println("Login exitoso")
+		} else {
+			fmt.Println("Login fallido")
+		}
+	}
+
+	return nil
 }
