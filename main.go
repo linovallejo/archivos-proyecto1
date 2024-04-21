@@ -37,9 +37,9 @@ var PathUsersFile string = ""
 func main() {
 	app := fiber.New()
 	app.Use(cors.New())
-	// app.Get("/", func(c *fiber.Ctx) error {
-	// 	return c.SendString("Hello, World!")
-	// })
+	app.Get("/hello", func(c *fiber.Ctx) error {
+		return c.SendString("Hello, World!")
+	})
 
 	app.Post("/execute", func(c *fiber.Ctx) error {
 		// Define a struct to match incoming JSON
