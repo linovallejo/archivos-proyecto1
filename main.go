@@ -65,6 +65,10 @@ func main() {
 
 	app.Post("/login", loginHandler)
 
+	//app.Static("/reportes", "./reportes")
+
+	app.Get("/reports", reportsHandler)
+
 	app.Listen(":4000")
 }
 
@@ -119,6 +123,9 @@ func executeCommand(input string) string {
 				case strings.HasPrefix(commandLower, "mkfs"):
 					params := strings.Fields(command)
 					mkfs(params[1:])
+				case strings.HasPrefix(commandLower, "rep"):
+					params := strings.Fields(command)
+					rep(params[1:])
 				}
 			}
 		}
@@ -517,6 +524,7 @@ func mkfs(params []string) {
 }
 
 func rep(params []string) {
+	//fmt.Println("rep")
 	id, reportName, reportPathAndFileName, err := Rep.ExtractRepParams(params)
 	reportPathAndFileName = strings.ReplaceAll(reportPathAndFileName, "\"", "")
 	//fmt.Printf("id: %s, reportName: %s, reportPathAndFileName: %s\n", id, reportName, reportPathAndFileName)
@@ -525,9 +533,11 @@ func rep(params []string) {
 		fmt.Println("Error al procesar los parámetros REP:", err)
 	}
 
+	reportPathAndFileName = filepath.Clean(reportPathAndFileName)
+
 	driveletter := string(id[0])
 	filename := driveletter + ".dsk"
-	fmt.Println("filename in rep:", filename)
+	//fmt.Println("filename in rep:", filename)
 
 	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
 	if err != nil {
@@ -767,28 +777,32 @@ func rep(params []string) {
 
 	//fmt.Println("Dot Code:", dotCode)
 
-	//fmt.Printf("reportPathAndFileName: %s\n", reportPathAndFileName)
+	fmt.Printf("reportPathAndFileName: %s\n", reportPathAndFileName)
 
-	extension := filepath.Ext(reportPathAndFileName)
+	dir, file := filepath.Split(reportPathAndFileName)
+	extension := filepath.Ext(file)
+	baseName := file[:len(file)-len(extension)]
+
+	//extension := filepath.Ext(reportPathAndFileName)
 	//fmt.Printf("extension: %s\n", extension)
-	pathWithoutExt := reportPathAndFileName[:len(reportPathAndFileName)-len(extension)]
+	//pathWithoutExt := reportPathAndFileName[:len(reportPathAndFileName)-len(extension)]
 	//fmt.Printf("pathWithoutExt: %s\n", pathWithoutExt)
 
-	nombreArchivoDot := pathWithoutExt + ".dot"
-	nombreArchivoReporte := reportPathAndFileName
+	nombreArchivoDot := filepath.Join(dir, id+"_"+baseName+".dot")
+	nombreArchivoReporte := filepath.Join(dir, id+"_"+baseName+extension)
 	//fmt.Printf("nombreArchivoReporte: %s\n", nombreArchivoReporte)
-	switch extension {
-	case ".pdf":
-		nombreArchivoReporte = pathWithoutExt + ".pdf"
-	case ".txt":
-		nombreArchivoReporte = pathWithoutExt + ".txt"
-	case ".png":
-		nombreArchivoReporte = pathWithoutExt + ".png"
-	case ".jpg":
-		nombreArchivoReporte = pathWithoutExt + ".jpg"
-	default:
-		nombreArchivoReporte = reportPathAndFileName
-	}
+	// switch extension {
+	// case ".pdf":
+	// 	nombreArchivoReporte = pathWithoutExt + ".pdf"
+	// case ".txt":
+	// 	nombreArchivoReporte = pathWithoutExt + ".txt"
+	// case ".png":
+	// 	nombreArchivoReporte = pathWithoutExt + ".png"
+	// case ".jpg":
+	// 	nombreArchivoReporte = pathWithoutExt + ".jpg"
+	// default:
+	// 	nombreArchivoReporte = reportPathAndFileName
+	// }
 
 	Reportes.CrearArchivo(nombreArchivoDot)
 	Reportes.EscribirArchivo(dotCode, nombreArchivoDot)
@@ -960,8 +974,9 @@ func loginHandler(c *fiber.Ctx) error {
 	if loginRequest.Username == "" || loginRequest.Password == "" {
 		return c.Status(fiber.StatusBadRequest).SendString("Username and password are required")
 	}
+	fmt.Printf("loginRequest: %+v\n", loginRequest)
 	err := executeLogin(loginRequest.Username, loginRequest.Password, loginRequest.PartitionId)
-	if err != nil {
+	if err != nil && err.Error() != "Usuario ya conectado" {
 		return c.Status(fiber.StatusBadRequest).SendString("Error logging in")
 	}
 	return c.SendString("Login successful")
@@ -993,4 +1008,34 @@ func executeLogin(user string, pass string, partitionId string) error {
 	}
 
 	return nil
+}
+
+func reportsHandler(c *fiber.Ctx) error {
+	//partitionId := c.Params("partitionId")
+	partitionId := c.Query("partitionId")
+	reports, err := listReports("./reportes", partitionId)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to read reports directory")
+	}
+	return c.JSON(reports)
+	//return c.SendString("Reports")
+}
+
+func listReports(directory string, partitionId string) ([]Types.ReportDto, error) {
+	var reports []Types.ReportDto
+	files, err := os.ReadDir(directory)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, file := range files {
+		if !file.IsDir() && strings.HasPrefix(strings.ToLower(file.Name()), strings.ToLower(partitionId+"_")) && strings.HasSuffix(strings.ToLower(file.Name()), ".jpg") {
+			report := Types.ReportDto{
+				ReportFileName: file.Name(),
+				DotFileName:    file.Name()[:len(file.Name())-4] + ".dot",
+			}
+			reports = append(reports, report)
+		}
+	}
+	return reports, nil
 }

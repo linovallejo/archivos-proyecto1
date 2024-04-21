@@ -12,3 +12,8 @@ type LoginRequestDto struct {
 	Password    string
 	PartitionId string
 }
+
+type ReportDto struct {
+	ReportFileName string `json:"reportFilename"`
+	DotFileName    string `json:"dotFileName"`
+}

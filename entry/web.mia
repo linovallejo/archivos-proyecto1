@@ -1,0 +1,8 @@
+mkdisk -size=25 -unit=M -fit=BF
+fdisk -size=15 -unit=M  -driveletter=A -name=Primaria1 -type=P -fit=BF
+fdisk -size=5 -unit=M  -driveletter=A -name=Primaria2 -type=P -fit=BF
+mount -driveletter=A -name=Primaria1
+mount -driveletter=A -name=Primaria2
+mkfs -type=full -id=A123 -fs=2fs
+rep -id=A123 -Path=.\reportes\reporte1.jpg -name=disk
+rep -id=A123 -Path=.\reportes\reporte2.jpg -name=mbr
