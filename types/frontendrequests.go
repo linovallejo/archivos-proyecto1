@@ -17,3 +17,7 @@ type ReportDto struct {
 	ReportFileName string `json:"reportFilename"`
 	DotFileName    string `json:"dotFileName"`
 }
+
+type GetReportDto struct {
+	DotFileName string `json:"dotFilename"`
+}

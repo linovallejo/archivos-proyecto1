@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	Fdisk "proyecto1/commands/fdisk"
@@ -68,6 +69,8 @@ func main() {
 	//app.Static("/reportes", "./reportes")
 
 	app.Get("/reports", reportsHandler)
+
+	app.Post("/get-report", getReportHandler)
 
 	app.Listen(":4000")
 }
@@ -1038,4 +1041,28 @@ func listReports(directory string, partitionId string) ([]Types.ReportDto, error
 		}
 	}
 	return reports, nil
+}
+
+func getReportHandler(c *fiber.Ctx) error {
+	var getReportRequest Types.GetReportDto
+	if err := c.BodyParser(&getReportRequest); err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Error parsing request")
+	}
+	var reportPath string = "./reportes/" + getReportRequest.DotFileName
+	if _, err := os.Stat(reportPath); os.IsNotExist(err) {
+		return c.Status(fiber.StatusNotFound).SendString("Report not found")
+	}
+	file, err := os.Open(reportPath)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to open report file")
+	}
+	defer file.Close()
+
+	dotContent, err := io.ReadAll(file)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to read report file"})
+	}
+
+	// Sending the content of the DOT file as a JSON object
+	return c.JSON(fiber.Map{"dotCode": string(dotContent)})
 }
