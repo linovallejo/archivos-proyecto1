@@ -1119,3 +1119,46 @@ func GetMountedPartitionsByDisk(diskFileName string) ([]Types.DiskPartitionDto, 
 	return diskPartitions, nil
 
 }
+
+func ReadFileSystemStructures(path string, partStart int32, usedInodes []Types.Inode) ([]Types.Inode, []interface{}, error) {
+	disk, err := os.OpenFile(path, os.O_RDONLY, 0660)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to open disk file: %v", err)
+	}
+	defer disk.Close()
+
+	// Reading superblock to find the start of blocks
+	superBlock := Types.SuperBlock{}
+	disk.Seek(int64(partStart), 0)
+	if err := Utilities.ReadObject(disk, &superBlock, int64(partStart)); err != nil {
+		return nil, nil, fmt.Errorf("failed to read SuperBlock: %v", err)
+	}
+
+	blockStart := int64(superBlock.S_block_start)
+	blocks := make([]interface{}, 0) // Using interface{} to store either DirectoryBlock or FileBlock
+
+	for _, inode := range usedInodes {
+		for j := 0; j < 15; j++ { // Check all possible block references
+			blockIndex := inode.I_block[j]
+			if blockIndex != -1 { // Valid block index
+				if inode.I_type[0] == 0 { // Directory inode
+					directoryBlock := Types.DirectoryBlock{}
+					blockPos := blockStart + int64(blockIndex)*int64(unsafe.Sizeof(directoryBlock))
+					if err := Utilities.ReadObject(disk, &directoryBlock, blockPos); err != nil {
+						continue
+					}
+					blocks = append(blocks, directoryBlock)
+				} else if inode.I_type[0] == 49 { // File inode
+					fileBlock := Types.FileBlock{}
+					blockPos := blockStart + int64(blockIndex)*int64(unsafe.Sizeof(fileBlock))
+					if err := Utilities.ReadObject(disk, &fileBlock, blockPos); err != nil {
+						continue
+					}
+					blocks = append(blocks, fileBlock)
+				}
+			}
+		}
+	}
+
+	return usedInodes, blocks, nil
+}

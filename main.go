@@ -72,6 +72,8 @@ func main() {
 
 	app.Post("/get-report", getReportHandler)
 
+	app.Get("/get-root-directory-contents", getRootDirectoryContentsHandler)
+
 	app.Listen(":4000")
 }
 
@@ -1065,4 +1067,107 @@ func getReportHandler(c *fiber.Ctx) error {
 
 	// Sending the content of the DOT file as a JSON object
 	return c.JSON(fiber.Map{"dotCode": string(dotContent)})
+}
+
+func getRootDirectoryContentsHandler(c *fiber.Ctx) error {
+	partitionId := c.Query("partitionId")
+	rootDirectoryContents, err := getRootDirectoryContents(partitionId)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to get root directory contents")
+	}
+
+	// Send the structured response to the frontend
+	response := Types.FileExplorerResponse{Items: rootDirectoryContents}
+	return c.JSON(response)
+}
+
+func getRootDirectoryContents(partitionId string) ([]Types.FileExplorerItem, error) {
+
+	driveletter := string(partitionId[0])
+	filename := driveletter + ".dsk"
+	//fmt.Println("filename in rep:", filename)
+
+	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	// Leer el MBR existente
+	mbr, err := Fdisk.ReadMBR(archivoBinarioDisco)
+	if err != nil {
+		fmt.Println("Error leyendo el MBR:", err)
+		return nil, err
+	}
+
+	_, err = Mount.ValidatePartitionId(mbr, partitionId)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	var partitionStart int32 = 0
+	partitionStart, err = Mount.GetPartitionStart(mbr, partitionId)
+
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	superblock, err := Mkfs.ReadSuperBlock(archivoBinarioDisco, partitionStart)
+	if err != nil {
+		fmt.Println("Error reading superblock:", err)
+		return nil, err
+	}
+
+	inodes, err := Mkfs.ReadAllUsedInodesFromFile(archivoBinarioDisco, superblock)
+	if err != nil {
+		fmt.Println("Error reading inodes:", err)
+		return nil, err
+	}
+
+	var blocks []interface{}
+	//var directoryBlocks []Types.DirectoryBlock
+	var error2 error
+
+	_, blocks, error2 = Mkfs.ReadFileSystemStructures(archivoBinarioDisco, partitionStart, inodes)
+	if error2 != nil {
+		fmt.Println(error2)
+		return nil, error2
+	}
+
+	var items []Types.FileExplorerItem
+
+	rootInode := inodes[0]
+
+	for _, blockNum := range rootInode.I_block {
+		if blockNum != -1 { // Check for valid block number
+			block := blocks[blockNum]
+			switch b := block.(type) {
+			case Types.DirectoryBlock:
+				for _, content := range b.B_content {
+					name := strings.TrimSpace(string(content.B_name[:])) // Convert name from bytes to string
+					if name == "" {
+						continue
+					}
+					inodeIndex := content.B_inodo
+					isFolder := inodes[inodeIndex].I_type[0] == 0 // '0' denotes a directory
+					items = append(items, Types.FileExplorerItem{Name: name, Inode: inodeIndex, IsFolder: isFolder})
+				}
+			case Types.FileBlock:
+				// Assuming we have metadata in blocks for files (adjust if necessary)
+				content := strings.TrimSpace(string(b.B_content[:])) // Simplified representation
+				if content != "" {
+					items = append(items, Types.FileExplorerItem{
+						Name:     content,
+						Inode:    blockNum, // Use block index as an inode index placeholder
+						IsFolder: false,
+					})
+				}
+			}
+		}
+	}
+
+	fmt.Println("Items:", items)
+	return items, nil
 }

@@ -10,6 +10,11 @@ rm -f ./disks/MIA/P1/*.dsk
 rm -f ./reportes/mbr*.*
 rm -f ./reportes/disk*.*
 rm -f ./reportes/reporte*.*
+rm -rf ./reportes/*.jpg
+rm -rf ./reportes/*.png
+rm -rf ./reportes/*.pdf
+rm -rf ./reportes/*.txt
+rm -rf ./reportes/*.dot
 rm -rf /home/linovallejo/archivos/reports/*.*
 
 # Run Go program

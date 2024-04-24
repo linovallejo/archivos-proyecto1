@@ -8,6 +8,11 @@ del .\disks\MIA\P1\*.dsk
 del .\reportes\mbr*.*
 del .\reportes\disk*.* 
 del .\reportes\reporte*.*
+del .\reportes\*.jpg
+del .\reportes\*.png
+del .\reportes\*.dot
+
+
 
 # Run the Go program
 go run .
