@@ -1146,7 +1146,7 @@ func getRootDirectoryContents(partitionId string) ([]Types.FileExplorerItem, err
 			switch b := block.(type) {
 			case Types.DirectoryBlock:
 				for _, content := range b.B_content {
-					name := strings.TrimSpace(string(content.B_name[:])) // Convert name from bytes to string
+					name := Utils.CleanPartitionName(content.B_name[:]) // Convert name from bytes to string
 					if name == "" {
 						continue
 					}
@@ -1156,7 +1156,7 @@ func getRootDirectoryContents(partitionId string) ([]Types.FileExplorerItem, err
 				}
 			case Types.FileBlock:
 				// Assuming we have metadata in blocks for files (adjust if necessary)
-				content := strings.TrimSpace(string(b.B_content[:])) // Simplified representation
+				content := Utils.CleanPartitionName(b.B_content[:]) // Simplified representation
 				if content != "" {
 					items = append(items, Types.FileExplorerItem{
 						Name:     content,

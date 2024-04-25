@@ -5,5 +5,5 @@ mount -driveletter=A -name=Primaria1
 #mount -driveletter=A -name=Primaria2
 mkfs -type=full -id=A123 -fs=2fs
 rep -id=A123 -Path=.\reportes\reporte1.jpg -name=disk
-rep -id=A123 -path=".\reportes\reporte1_tree.jpg" -name=tree
-#rep -id=A123 -Path=.\reportes\reporte2.jpg -name=mbr
+rep -id=A123 -Path=.\reportes\reporte2.jpg -name=mbr
+#rep -id=A123 -path=".\reportes\reporte1_tree.jpg" -name=tree
