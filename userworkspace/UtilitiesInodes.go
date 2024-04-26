@@ -45,6 +45,13 @@ func pop(s *[]string) string {
 // login -user=root -pass=123 -id=A119
 func SarchInodeByPath(StepsPath []string, Inode Types.Inode, file *os.File, tempSuperblock Types.SuperBlock) int32 {
 	index := int32(0)
+	fmt.Println("======Start SEARCHINODEBYPATH======")
+	fmt.Println(StepsPath)
+	for _, step := range StepsPath {
+		fmt.Println("step:", step)
+	}
+	fmt.Println("======End SEARCHINODEBYPATH======")
+
 	SearchedName := strings.Replace(pop(&StepsPath), " ", "", -1)
 
 	//fmt.Println("========== SearchedName:", SearchedName)
@@ -216,6 +223,9 @@ func ReturnFileContents(pathUsersFile string, partitionId string, diskFileName s
 	// split the path by /
 	// TempStepsPath := strings.Split(pathFile, "/")
 	// StepsPath := TempStepsPath[1:]
+
+	fmt.Println("StepsPath:", pathUsersFile, "len(StepsPath):", len(pathUsersFile))
+	fmt.Println("FilePathSeparator:", string(filepath.Separator))
 
 	TempStepsPath := strings.Split(pathUsersFile, string(filepath.Separator))
 	StepsPath := TempStepsPath[1:]

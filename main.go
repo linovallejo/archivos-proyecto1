@@ -74,6 +74,8 @@ func main() {
 
 	app.Get("/get-root-directory-contents", getRootDirectoryContentsHandler)
 
+	app.Post("/get-file-contents", getFileContentsHandler)
+
 	app.Listen(":4000")
 }
 
@@ -1170,4 +1172,51 @@ func getRootDirectoryContents(partitionId string) ([]Types.FileExplorerItem, err
 
 	fmt.Println("Items:", items)
 	return items, nil
+}
+
+func getFileContentsHandler(c *fiber.Ctx) error {
+	var getFileContentsRequest Types.GetFileContentsRequest
+	if err := c.BodyParser(&getFileContentsRequest); err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Error parsing request")
+	}
+	fmt.Printf("getFileContentsRequest: %+v\n", getFileContentsRequest)
+	fileContents, err := getFileContents(getFileContentsRequest)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to get file contents")
+	}
+	return c.JSON(fileContents)
+}
+
+func getFileContents(getFileContentsRequest Types.GetFileContentsRequest) (Types.FileContentsResponse, error) {
+
+	driveletter := string(getFileContentsRequest.PartitionId[0])
+	filename := driveletter + ".dsk"
+	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
+	if err != nil {
+		fmt.Println(err)
+		return Types.FileContentsResponse{}, err
+	}
+
+	var fileContents Types.FileContentsResponse
+	var error2 error
+	fileContents.Contents = ""
+
+	var contents []string = []string{}
+	fmt.Println("getFileContentsRequest.Path:", getFileContentsRequest.Path)
+	fmt.Println("getFileContentsRequest.PartitionId:", getFileContentsRequest.PartitionId)
+	fmt.Println("archivoBinarioDisco:", archivoBinarioDisco)
+	contents, error2 = UserWorkspace.EjecutarCat(normalizePath(getFileContentsRequest.Path), getFileContentsRequest.PartitionId, archivoBinarioDisco)
+	if error2 != nil {
+		fmt.Println(error2)
+		return Types.FileContentsResponse{}, error2
+	}
+	contentsString := strings.Join(contents, "\n")
+	contents = []string{Utils.CleanPartitionName([]byte(contentsString))}
+	fileContents.Contents = strings.Join(contents, "\n")
+
+	return fileContents, nil
+}
+
+func normalizePath(path string) string {
+	return strings.ReplaceAll(path, "/", "\\") // Convert all backslashes to forward slashes
 }

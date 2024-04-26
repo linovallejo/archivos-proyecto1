@@ -31,3 +31,12 @@ type FileExplorerItem struct {
 type FileExplorerResponse struct {
 	Items []FileExplorerItem `json:"items"`
 }
+
+type GetFileContentsRequest struct {
+	PartitionId string `json:"partitionId"`
+	Path        string `json:"path"`
+}
+
+type FileContentsResponse struct {
+	Contents string `json:"contents"`
+}
