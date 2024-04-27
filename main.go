@@ -1,8 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	Fdisk "proyecto1/commands/fdisk"
@@ -14,10 +14,13 @@ import (
 	Command "proyecto1/commands/validations"
 	Global "proyecto1/global"
 	Reportes "proyecto1/reportes"
+	Types "proyecto1/types"
 	UserWorkspace "proyecto1/userworkspace"
 	Utils "proyecto1/utils"
-	"runtime"
 	"strings"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 var rutaDiscos string = "./disks/MIA/P1/"
@@ -32,56 +35,81 @@ var CurrentSession Global.Sesion
 var PathUsersFile string = ""
 
 func main() {
-	Utils.LimpiarConsola()
-	Utils.PrintCopyright()
-	fmt.Println("Sistema de Archivos ext2/ext3 - Proyecto 1")
+	app := fiber.New()
+	app.Use(cors.New())
+	app.Get("/hello", func(c *fiber.Ctx) error {
+		return c.SendString("Hello, World!")
+	})
 
-	if runtime.GOOS == "windows" {
-		PathUsersFile = ".\\users.txt"
-	} else {
-		PathUsersFile = "./users.txt"
-		// PathUsersFile = filepath.Join("/home", "lino", "users.txt")
-	}
+	app.Post("/execute", func(c *fiber.Ctx) error {
+		// Define a struct to match incoming JSON
+		type CommandRequest struct {
+			Command string `json:"command"`
+		}
 
-	var input string
-	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Println("Ingrese el comando:")
-	scanner.Scan()
-	input = scanner.Text()
+		var cmdReq CommandRequest
+		if err := c.BodyParser(&cmdReq); err != nil {
+			return c.Status(fiber.StatusBadRequest).SendString("Error parsing request")
+		}
 
-	comando, path := parseCommand(input)
-	if comando != "execute" || path == "" {
-		fmt.Println("Comando no reconocido o ruta de archivo faltante. Uso: execute <ruta_al_archivo_de_scripts>")
-		return
-	}
+		if cmdReq.Command == "" {
+			return c.Status(fiber.StatusBadRequest).SendString("No command provided")
+		}
 
-	path = strings.Trim(path, `"'`)
+		result := executeCommand(cmdReq.Command)
+		return c.SendString(result)
+	})
 
-	fmt.Printf("Leyendo el archivo de scripts de: %s\n", path)
+	app.Get("/list-disks", listDisksHandler)
 
-	content, err := os.ReadFile(path)
-	if err != nil {
-		fmt.Printf("Error leyendo el archivo de scripts: %v\n", err)
-		return
-	}
+	app.Get("/list-mounted-partitions-by-disk/:diskFileName", listMountedPartitionsByDiskHandler)
 
-	contentStr := string(content)
+	app.Post("/login", loginHandler)
+
+	//app.Static("/reportes", "./reportes")
+
+	app.Get("/reports", reportsHandler)
+
+	app.Post("/get-report", getReportHandler)
+
+	app.Get("/get-root-directory-contents", getRootDirectoryContentsHandler)
+
+	app.Post("/get-file-contents", getFileContentsHandler)
+
+	app.Listen(":4000")
+}
+
+func executeCommand(input string) string {
+	var resultado string = ""
+	var output strings.Builder
+
+	// comando, path := parseCommand(input)
+	// if comando != "execute" || path == "" {
+	// 	return "Comando no reconocido o ruta de archivo faltante. Uso: execute <ruta_al_archivo_de_scripts>"
+	// }
+
+	// path = strings.Trim(path, `"'`)
+	// output.WriteString(fmt.Sprintf("Leyendo el archivo de scripts de: %s\n", path))
+
+	// content, err := os.ReadFile(path)
+	// if err != nil {
+	// 	return fmt.Sprintf("Error leyendo el archivo de scripts: %v\n", err)
+	// }
+
+	//contentStr := string(content)
+	contentStr := input
 	contentStr = strings.Replace(contentStr, "\r\n", "\n", -1) // Convertir CRLF a LF
 	commands := strings.Split(contentStr, "\n")
 
 	for _, command := range commands {
 		command = strings.TrimSpace(command)
-		if command != "" {
-			fmt.Println("_______________________________________________________")
-			fmt.Println("Procesando comando: ", command)
-		}
 		if command == "" || strings.HasPrefix(command, "#") {
 			continue
 		}
 
 		var commandLower string = strings.ToLower(command)
 
-		err = Command.ValidarComando(commandLower)
+		err := Command.ValidarComando(commandLower)
 		if err != nil {
 			fmt.Println(err)
 		} else {
@@ -89,131 +117,33 @@ func main() {
 			if err != nil {
 				fmt.Println(err)
 			} else {
-
 				switch {
 				case strings.HasPrefix(commandLower, "mkdisk"):
 					params := strings.Fields(command)
-					archivoBinarioDiscoActual = mkdisk(params[1:])
-
-					// fmt.Println("despues del mkdisk")
-					// var TempMBR2 *Types.MBR
-					// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					// if err != nil {
-					// 	fmt.Println("Error leyendo el MBR:", err)
-					// 	return
-					// }
-
-					// Utils.PrintMBRv3(TempMBR2)
+					archivoBinarioDiscoActual, resultado = mkdisk(params[1:])
 				case strings.HasPrefix(commandLower, "fdisk"):
 					params := strings.Fields(command)
-
-					// fmt.Println("antes del fdisk")
-					// var TempMBR2 *Types.MBR
-					// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					// if err != nil {
-					// 	fmt.Println("Error leyendo el MBR:", err)
-					// 	return
-					// }
-					// Utils.PrintMBRv3(TempMBR2)
-
 					fdisk(params[1:])
-
-					// fmt.Println("despues del fdisk")
-					// var TempMBR3 *Types.MBR
-					// TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					// if err != nil {
-					// 	fmt.Println("Error leyendo el MBR:", err)
-					// 	return
-					// }
-					// Utils.PrintMBRv3(TempMBR3)
-
-					// logicalPartitions, _ := Fdisk.GetLogicalPartition(archivoBinarioDiscoActual)
-					// Fdisk.PrintLogicalPartitions(logicalPartitions)
-
-				case strings.HasPrefix(commandLower, "rmdisk"):
-					// fmt.Println("¿Está seguro de que desea eliminar el disco? [s/N]:")
-					// var response string
-					// _, err := fmt.Scanln(&response)
-					// if err != nil || (response != "s" && response != "S") {
-					// 	fmt.Println("Operación de eliminación cancelada.")
-					// 	return
-					// }
-
-					params := strings.Fields(command)
-					rmdisk(params[1:])
 				case strings.HasPrefix(commandLower, "mount"):
 					params := strings.Fields(command)
-
-					// fmt.Println("antes del mount")
-					// var TempMBR2 *Types.MBR
-					// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					// if err != nil {
-					// 	fmt.Println("Error leyendo el MBR:", err)
-					// 	return
-					// }
-					// Utils.PrintMBRv3(TempMBR2)
-
 					mount(params[1:])
-
-					// fmt.Println("despues del mount")
-					// var TempMBR3 *Types.MBR
-					// TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					// if err != nil {
-					// 	fmt.Println("Error leyendo el MBR:", err)
-					// 	return
-					// }
-					// Utils.PrintMBRv3(TempMBR3)
-				case strings.HasPrefix(commandLower, "unmount"):
+				case strings.HasPrefix(commandLower, "mkfs"):
 					params := strings.Fields(command)
-					unmount(params[1:])
+					mkfs(params[1:])
 				case strings.HasPrefix(commandLower, "rep"):
 					params := strings.Fields(command)
 					rep(params[1:])
-				case strings.HasPrefix(commandLower, "pause"):
-					fmt.Println("Presione cualquier tecla para continuar...")
-					fmt.Scanln()
-				case strings.HasPrefix(commandLower, "login"):
-					params := strings.Fields(command)
-					login(params[1:])
-				// case strings.HasPrefix(commandLower, "logout"):
-				// 	logout()
-				case strings.HasPrefix(commandLower, "mkfs"):
-					params := strings.Fields(command)
-
-					// fmt.Println("antes del mkfs")
-					// var TempMBR2 *Types.MBR
-					// TempMBR2, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					// if err != nil {
-					// 	fmt.Println("Error leyendo el MBR:", err)
-					// 	return
-					// }
-					// Utils.PrintMBRv3(TempMBR2)
-
-					mkfs(params[1:])
-
-					// fmt.Println("despues del mkfs")
-					// var TempMBR3 *Types.MBR
-					// TempMBR3, err = Fdisk.ReadMBR(archivoBinarioDiscoActual)
-					// if err != nil {
-					// 	fmt.Println("Error leyendo el MBR:", err)
-					// 	return
-					// }
-					// Utils.PrintMBRv3(TempMBR3)
-				case strings.HasPrefix(commandLower, "mkgrp"):
-					params := strings.Fields(command)
-					mkgrp(params[1:])
-				case strings.HasPrefix(commandLower, "cat"):
-					params := strings.Fields(command)
-					cat(params[1:])
-				case strings.HasPrefix(commandLower, "logout"):
-					logout()
 				}
 			}
-
 		}
 
+		// Simulated execution, replace with actual logic
+		//output.WriteString(fmt.Sprintf("Procesando comando: %s\n", command))
+
+		output.WriteString(fmt.Sprintf("%s\n", resultado))
 	}
-	//Rmdisk.RemoveDisk(archivoBinarioDiscoActual)
+
+	return output.String()
 }
 
 func parseCommand(input string) (string, string) {
@@ -221,32 +151,42 @@ func parseCommand(input string) (string, string) {
 	if len(parts) < 2 {
 		return "", ""
 	}
-
-	command := parts[0]
-	var path string
-
-	for _, part := range parts[1:] {
-		if strings.HasPrefix(part, "-path=") {
-			path = strings.TrimPrefix(part, "-path=")
-			break
-		}
-	}
-
-	return command, path
+	return parts[0], strings.Join(parts[1:], " ")
 }
 
-func mkdisk(params []string) string {
+// func parseCommand(input string) (string, string) {
+// 	parts := strings.Fields(input)
+// 	if len(parts) < 2 {
+// 		return "", ""
+// 	}
+
+// 	command := parts[0]
+// 	var path string
+
+// 	for _, part := range parts[1:] {
+// 		if strings.HasPrefix(part, "-path=") {
+// 			path = strings.TrimPrefix(part, "-path=")
+// 			break
+// 		}
+// 	}
+
+// 	return command, path
+// }
+
+func mkdisk(params []string) (string, string) {
 	size, unit, diskFit, err := Mkdisk.ExtractMkdiskParams(params)
 	if err != nil {
-		fmt.Println("Error al procesar los parámetros MKDISK:", err)
-		return ""
+		errorMessage := fmt.Sprintf("Error al procesar los parámetros MKDISK: %v", err)
+		fmt.Println(errorMessage)
+		return "", errorMessage
 	}
 
 	// Tamaño del disco en bytes
 	sizeInBytes, err := Mkdisk.CalculateDiskSize(size, unit)
 	if err != nil {
 		fmt.Println("Error:", err)
-		return ""
+		errorMessage := fmt.Sprintf(err.Error())
+		return "", errorMessage
 	}
 
 	// Construye el nombre del disco apropiado
@@ -257,9 +197,11 @@ func mkdisk(params []string) string {
 	// Creación del disco con el tamaño calculado en bytes
 	Mkdisk.CreateDiskWithSize(filename, int32(sizeInBytes), diskFit)
 
-	fmt.Printf("Disco %s creado exitosamente!\n", filename)
+	successMessage := fmt.Sprintf("Disco %s creado exitosamente!", filename)
 
-	return filename
+	fmt.Println(successMessage) // This prints the success message to the console.
+
+	return filename, successMessage
 }
 
 func fdisk(params []string) {
@@ -589,6 +531,7 @@ func mkfs(params []string) {
 }
 
 func rep(params []string) {
+	//fmt.Println("rep")
 	id, reportName, reportPathAndFileName, err := Rep.ExtractRepParams(params)
 	reportPathAndFileName = strings.ReplaceAll(reportPathAndFileName, "\"", "")
 	//fmt.Printf("id: %s, reportName: %s, reportPathAndFileName: %s\n", id, reportName, reportPathAndFileName)
@@ -597,9 +540,11 @@ func rep(params []string) {
 		fmt.Println("Error al procesar los parámetros REP:", err)
 	}
 
+	reportPathAndFileName = filepath.Clean(reportPathAndFileName)
+
 	driveletter := string(id[0])
 	filename := driveletter + ".dsk"
-	fmt.Println("filename in rep:", filename)
+	//fmt.Println("filename in rep:", filename)
 
 	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
 	if err != nil {
@@ -839,28 +784,32 @@ func rep(params []string) {
 
 	//fmt.Println("Dot Code:", dotCode)
 
-	//fmt.Printf("reportPathAndFileName: %s\n", reportPathAndFileName)
+	fmt.Printf("reportPathAndFileName: %s\n", reportPathAndFileName)
 
-	extension := filepath.Ext(reportPathAndFileName)
+	dir, file := filepath.Split(reportPathAndFileName)
+	extension := filepath.Ext(file)
+	baseName := file[:len(file)-len(extension)]
+
+	//extension := filepath.Ext(reportPathAndFileName)
 	//fmt.Printf("extension: %s\n", extension)
-	pathWithoutExt := reportPathAndFileName[:len(reportPathAndFileName)-len(extension)]
+	//pathWithoutExt := reportPathAndFileName[:len(reportPathAndFileName)-len(extension)]
 	//fmt.Printf("pathWithoutExt: %s\n", pathWithoutExt)
 
-	nombreArchivoDot := pathWithoutExt + ".dot"
-	nombreArchivoReporte := reportPathAndFileName
+	nombreArchivoDot := filepath.Join(dir, id+"_"+baseName+".dot")
+	nombreArchivoReporte := filepath.Join(dir, id+"_"+baseName+extension)
 	//fmt.Printf("nombreArchivoReporte: %s\n", nombreArchivoReporte)
-	switch extension {
-	case ".pdf":
-		nombreArchivoReporte = pathWithoutExt + ".pdf"
-	case ".txt":
-		nombreArchivoReporte = pathWithoutExt + ".txt"
-	case ".png":
-		nombreArchivoReporte = pathWithoutExt + ".png"
-	case ".jpg":
-		nombreArchivoReporte = pathWithoutExt + ".jpg"
-	default:
-		nombreArchivoReporte = reportPathAndFileName
-	}
+	// switch extension {
+	// case ".pdf":
+	// 	nombreArchivoReporte = pathWithoutExt + ".pdf"
+	// case ".txt":
+	// 	nombreArchivoReporte = pathWithoutExt + ".txt"
+	// case ".png":
+	// 	nombreArchivoReporte = pathWithoutExt + ".png"
+	// case ".jpg":
+	// 	nombreArchivoReporte = pathWithoutExt + ".jpg"
+	// default:
+	// 	nombreArchivoReporte = reportPathAndFileName
+	// }
 
 	Reportes.CrearArchivo(nombreArchivoDot)
 	Reportes.EscribirArchivo(dotCode, nombreArchivoDot)
@@ -977,4 +926,297 @@ func cat(params []string) {
 		fmt.Println("Contenido del archivo:\n", fileContents)
 	}
 
+}
+
+func listDisksHandler(c *fiber.Ctx) error {
+	disks, err := getDiskFiles(rutaDiscos)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to read directory")
+	}
+	return c.JSON(disks)
+
+}
+
+func getDiskFiles(directoryPath string) ([]string, error) {
+	files, err := os.ReadDir(directoryPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var disks []string
+	for _, file := range files {
+		info, err := file.Info()
+		if err != nil {
+			continue // or handle the error in a way that fits your requirements
+		}
+		if strings.HasSuffix(file.Name(), ".dsk") && !info.IsDir() {
+			disks = append(disks, file.Name())
+		}
+	}
+	return disks, nil
+}
+
+func listMountedPartitionsByDiskHandler(c *fiber.Ctx) error {
+	partitions, err := getMountedPartitionsHandler(c.Params("diskFileName"))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to get mounted partitions")
+	}
+	return c.JSON(partitions)
+}
+
+func getMountedPartitionsHandler(diskFileName string) ([]Types.DiskPartitionDto, error) {
+	var diskFileNameFullPath string = rutaDiscos + diskFileName
+	partitions, err := Mkfs.GetMountedPartitionsByDisk(diskFileNameFullPath)
+	if err != nil {
+		return nil, err
+	}
+	return partitions, nil
+}
+
+func loginHandler(c *fiber.Ctx) error {
+	var loginRequest Types.LoginRequestDto
+	if err := c.BodyParser(&loginRequest); err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Error parsing request")
+	}
+	if loginRequest.Username == "" || loginRequest.Password == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Username and password are required")
+	}
+	fmt.Printf("loginRequest: %+v\n", loginRequest)
+	err := executeLogin(loginRequest.Username, loginRequest.Password, loginRequest.PartitionId)
+	if err != nil && err.Error() != "Usuario ya conectado" {
+		return c.Status(fiber.StatusBadRequest).SendString("Error logging in")
+	}
+	return c.SendString("Login successful")
+}
+
+func executeLogin(user string, pass string, partitionId string) error {
+
+	driveletter := string(partitionId[0])
+	filename := driveletter + ".dsk"
+	//fmt.Println("filename in rep:", filename)
+
+	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	err = UserWorkspace.Login(user, pass, partitionId, archivoBinarioDisco)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	} else {
+		if Global.Usuario.Status {
+			IsLoginFlag = true
+			fmt.Println("Login exitoso")
+		} else {
+			fmt.Println("Login fallido")
+		}
+	}
+
+	return nil
+}
+
+func reportsHandler(c *fiber.Ctx) error {
+	//partitionId := c.Params("partitionId")
+	partitionId := c.Query("partitionId")
+	reports, err := listReports("./reportes", partitionId)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to read reports directory")
+	}
+	return c.JSON(reports)
+	//return c.SendString("Reports")
+}
+
+func listReports(directory string, partitionId string) ([]Types.ReportDto, error) {
+	var reports []Types.ReportDto
+	files, err := os.ReadDir(directory)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, file := range files {
+		if !file.IsDir() && strings.HasPrefix(strings.ToLower(file.Name()), strings.ToLower(partitionId+"_")) && strings.HasSuffix(strings.ToLower(file.Name()), ".jpg") {
+			report := Types.ReportDto{
+				ReportFileName: file.Name(),
+				DotFileName:    file.Name()[:len(file.Name())-4] + ".dot",
+			}
+			reports = append(reports, report)
+		}
+	}
+	return reports, nil
+}
+
+func getReportHandler(c *fiber.Ctx) error {
+	var getReportRequest Types.GetReportDto
+	if err := c.BodyParser(&getReportRequest); err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Error parsing request")
+	}
+	var reportPath string = "./reportes/" + getReportRequest.DotFileName
+	if _, err := os.Stat(reportPath); os.IsNotExist(err) {
+		return c.Status(fiber.StatusNotFound).SendString("Report not found")
+	}
+	file, err := os.Open(reportPath)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to open report file")
+	}
+	defer file.Close()
+
+	dotContent, err := io.ReadAll(file)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to read report file"})
+	}
+
+	// Sending the content of the DOT file as a JSON object
+	return c.JSON(fiber.Map{"dotCode": string(dotContent)})
+}
+
+func getRootDirectoryContentsHandler(c *fiber.Ctx) error {
+	partitionId := c.Query("partitionId")
+	rootDirectoryContents, err := getRootDirectoryContents(partitionId)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to get root directory contents")
+	}
+
+	// Send the structured response to the frontend
+	response := Types.FileExplorerResponse{Items: rootDirectoryContents}
+	return c.JSON(response)
+}
+
+func getRootDirectoryContents(partitionId string) ([]Types.FileExplorerItem, error) {
+
+	driveletter := string(partitionId[0])
+	filename := driveletter + ".dsk"
+	//fmt.Println("filename in rep:", filename)
+
+	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	// Leer el MBR existente
+	mbr, err := Fdisk.ReadMBR(archivoBinarioDisco)
+	if err != nil {
+		fmt.Println("Error leyendo el MBR:", err)
+		return nil, err
+	}
+
+	_, err = Mount.ValidatePartitionId(mbr, partitionId)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	var partitionStart int32 = 0
+	partitionStart, err = Mount.GetPartitionStart(mbr, partitionId)
+
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	superblock, err := Mkfs.ReadSuperBlock(archivoBinarioDisco, partitionStart)
+	if err != nil {
+		fmt.Println("Error reading superblock:", err)
+		return nil, err
+	}
+
+	inodes, err := Mkfs.ReadAllUsedInodesFromFile(archivoBinarioDisco, superblock)
+	if err != nil {
+		fmt.Println("Error reading inodes:", err)
+		return nil, err
+	}
+
+	var blocks []interface{}
+	//var directoryBlocks []Types.DirectoryBlock
+	var error2 error
+
+	_, blocks, error2 = Mkfs.ReadFileSystemStructures(archivoBinarioDisco, partitionStart, inodes)
+	if error2 != nil {
+		fmt.Println(error2)
+		return nil, error2
+	}
+
+	var items []Types.FileExplorerItem
+
+	rootInode := inodes[0]
+
+	for _, blockNum := range rootInode.I_block {
+		if blockNum != -1 { // Check for valid block number
+			block := blocks[blockNum]
+			switch b := block.(type) {
+			case Types.DirectoryBlock:
+				for _, content := range b.B_content {
+					name := Utils.CleanPartitionName(content.B_name[:]) // Convert name from bytes to string
+					if name == "" {
+						continue
+					}
+					inodeIndex := content.B_inodo
+					isFolder := inodes[inodeIndex].I_type[0] == 0 // '0' denotes a directory
+					items = append(items, Types.FileExplorerItem{Name: name, Inode: inodeIndex, IsFolder: isFolder})
+				}
+			case Types.FileBlock:
+				// Assuming we have metadata in blocks for files (adjust if necessary)
+				content := Utils.CleanPartitionName(b.B_content[:]) // Simplified representation
+				if content != "" {
+					items = append(items, Types.FileExplorerItem{
+						Name:     content,
+						Inode:    blockNum, // Use block index as an inode index placeholder
+						IsFolder: false,
+					})
+				}
+			}
+		}
+	}
+
+	fmt.Println("Items:", items)
+	return items, nil
+}
+
+func getFileContentsHandler(c *fiber.Ctx) error {
+	var getFileContentsRequest Types.GetFileContentsRequest
+	if err := c.BodyParser(&getFileContentsRequest); err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Error parsing request")
+	}
+	fmt.Printf("getFileContentsRequest: %+v\n", getFileContentsRequest)
+	fileContents, err := getFileContents(getFileContentsRequest)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to get file contents")
+	}
+	return c.JSON(fileContents)
+}
+
+func getFileContents(getFileContentsRequest Types.GetFileContentsRequest) (Types.FileContentsResponse, error) {
+
+	driveletter := string(getFileContentsRequest.PartitionId[0])
+	filename := driveletter + ".dsk"
+	archivoBinarioDisco, err := Fdisk.ValidateFileName(rutaDiscos, filename)
+	if err != nil {
+		fmt.Println(err)
+		return Types.FileContentsResponse{}, err
+	}
+
+	var fileContents Types.FileContentsResponse
+	var error2 error
+	fileContents.Contents = ""
+
+	var contents []string = []string{}
+	fmt.Println("getFileContentsRequest.Path:", getFileContentsRequest.Path)
+	fmt.Println("getFileContentsRequest.PartitionId:", getFileContentsRequest.PartitionId)
+	fmt.Println("archivoBinarioDisco:", archivoBinarioDisco)
+	contents, error2 = UserWorkspace.EjecutarCat(normalizePath(getFileContentsRequest.Path), getFileContentsRequest.PartitionId, archivoBinarioDisco)
+	if error2 != nil {
+		fmt.Println(error2)
+		return Types.FileContentsResponse{}, error2
+	}
+	contentsString := strings.Join(contents, "\n")
+	contents = []string{Utils.CleanPartitionName([]byte(contentsString))}
+	fileContents.Contents = strings.Join(contents, "\n")
+
+	return fileContents, nil
+}
+
+func normalizePath(path string) string {
+	return strings.ReplaceAll(path, "/", "\\") // Convert all backslashes to forward slashes
 }
