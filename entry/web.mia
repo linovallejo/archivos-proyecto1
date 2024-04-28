@@ -7,3 +7,14 @@ mkfs -type=full -id=A123 -fs=2fs
 rep -id=A123 -Path=.\reportes\reporte1.jpg -name=disk
 rep -id=A123 -Path=.\reportes\reporte2.jpg -name=mbr
 #rep -id=A123 -path=".\reportes\reporte1_tree.jpg" -name=tree
+
+
+
+
+mkdisk -size=25 -unit=M -fit=BF
+fdisk -size=15 -unit=M  -driveletter=A -name=Primaria1 -type=P -fit=BF
+mount -driveletter=A -name=Primaria1
+mkfs -type=full -id=A123 -fs=2fs
+rep -id=A123 -Path=./reportes/reporte1.jpg -name=disk
+rep -id=A123 -Path=./reportes/reporte2.jpg -name=mbr
+

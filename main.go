@@ -1029,6 +1029,8 @@ func reportsHandler(c *fiber.Ctx) error {
 }
 
 func listReports(directory string, partitionId string) ([]Types.ReportDto, error) {
+	fmt.Println("directory:", directory)
+	fmt.Println("partitionId:", partitionId)
 	var reports []Types.ReportDto
 	files, err := os.ReadDir(directory)
 	if err != nil {
@@ -1036,6 +1038,7 @@ func listReports(directory string, partitionId string) ([]Types.ReportDto, error
 	}
 
 	for _, file := range files {
+		fmt.Println("Checking file:", file.Name())
 		if !file.IsDir() && strings.HasPrefix(strings.ToLower(file.Name()), strings.ToLower(partitionId+"_")) && strings.HasSuffix(strings.ToLower(file.Name()), ".jpg") {
 			report := Types.ReportDto{
 				ReportFileName: file.Name(),
