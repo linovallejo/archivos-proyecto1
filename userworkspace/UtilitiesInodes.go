@@ -225,6 +225,7 @@ func ReturnFileContents(pathUsersFile string, partitionId string, diskFileName s
 	// StepsPath := TempStepsPath[1:]
 
 	fmt.Println("StepsPath:", pathUsersFile, "len(StepsPath):", len(pathUsersFile))
+	fmt.Println("pathUsersFile:", pathUsersFile)
 	fmt.Println("FilePathSeparator:", string(filepath.Separator))
 
 	TempStepsPath := strings.Split(pathUsersFile, string(filepath.Separator))
