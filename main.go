@@ -1224,5 +1224,5 @@ func getFileContents(getFileContentsRequest Types.GetFileContentsRequest) (Types
 }
 
 func normalizePath(path string) string {
-	return strings.ReplaceAll(path, "/", "\\") // Convert all backslashes to forward slashes
+	return strings.ReplaceAll(path, "\\", "/") // Convert all backslashes to forward slashes
 }
