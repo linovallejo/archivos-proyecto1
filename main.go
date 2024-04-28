@@ -1039,7 +1039,7 @@ func listReports(directory string, partitionId string) ([]Types.ReportDto, error
 
 	for _, file := range files {
 		fmt.Println("Checking file:", file.Name())
-		if !file.IsDir() && strings.HasPrefix(strings.ToLower(file.Name()), strings.ToLower(partitionId+"_")) && strings.HasSuffix(strings.ToLower(file.Name()), ".jpg") {
+		if !file.IsDir() && strings.HasPrefix(strings.ToLower(file.Name()), strings.ToLower(partitionId+"_")) && (strings.HasSuffix(strings.ToLower(file.Name()), ".dot") || strings.HasSuffix(strings.ToLower(file.Name()), ".jpg")) {
 			report := Types.ReportDto{
 				ReportFileName: file.Name(),
 				DotFileName:    file.Name()[:len(file.Name())-4] + ".dot",
